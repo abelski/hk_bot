@@ -18,7 +18,8 @@
 - **Creds path**: `/root/hk_bot/.cred`
 - **Service**: `hk-bot` (systemd, enabled, auto-restarts)
 - **Python**: 3.10.12 at `/usr/bin/python3`
-- **Deps installed**: `python-telegram-bot==21.7`, `python-dotenv==1.0.1`
+- **Deps installed**: `python-telegram-bot==21.7`, `python-dotenv==1.0.1`, `requests` (pip3)
+- **Bot files**: `/root/hk_bot/src/bot.py`, `/root/hk_bot/src/leaderboard.py`
 - **SSH**: not installed (use `pct exec 100` via Proxmox host)
 
 ## Deployment pattern

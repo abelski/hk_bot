@@ -10,6 +10,7 @@ import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, MessageHandler, CommandHandler, CallbackQueryHandler, filters, ContextTypes
 from dotenv import load_dotenv
+from leaderboard import fetch_top3, format_top3
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -30,7 +31,11 @@ UPDATE_NO = "update_no"
 
 
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("Hello!")
+    entries = fetch_top3()
+    if entries is None:
+        await update.message.reply_text("Could not fetch leaderboard, please try again later.")
+    else:
+        await update.message.reply_text(format_top3(entries))
 
 
 async def update_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
