@@ -18,7 +18,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-load_dotenv(".cred")
+load_dotenv(".env")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 BOT_DIR = os.getenv("BOT_DIR", "/root/hk_bot")
 BOT_SCRIPT = f"{BOT_DIR}/src/bot.py"
@@ -30,12 +30,28 @@ UPDATE_YES = "update_yes"
 UPDATE_NO = "update_no"
 
 
-async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    message = update.effective_message
     entries = fetch_top3()
     if entries is None:
-        await update.message.reply_text("Could not fetch leaderboard, please try again later.")
+        await message.reply_text("Could not fetch leaderboard, please try again later.")
     else:
-        await update.message.reply_text(format_top3(entries))
+        await message.reply_text(format_top3(entries))
+
+
+async def answer_mention(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    message = update.effective_message
+    if not message:
+        return
+    bot_username = context.bot.username
+    for text in message.parse_entities(["mention"]).values():
+        if text.lower() == f"@{bot_username}".lower():
+            entries = fetch_top3()
+            if entries is None:
+                await message.reply_text("Could not fetch leaderboard, please try again later.")
+            else:
+                await message.reply_text(format_top3(entries))
+            return
 
 
 async def update_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -104,7 +120,11 @@ def main() -> None:
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     app.add_handler(CommandHandler("update", update_command))
     app.add_handler(CallbackQueryHandler(update_callback, pattern=f"^{UPDATE_YES}$|^{UPDATE_NO}$"))
-    app.add_handler(MessageHandler(filters.ALL, hello))
+    app.add_handler(MessageHandler(filters.ChatType.PRIVATE, answer))
+    app.add_handler(MessageHandler(
+        (filters.ChatType.GROUPS | filters.ChatType.CHANNEL) & filters.Entity("mention"),
+        answer_mention,
+    ))
 
     logger.info("Bot started")
     app.run_polling(allowed_updates=Update.ALL_TYPES)

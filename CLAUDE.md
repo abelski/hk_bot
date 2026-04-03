@@ -47,6 +47,14 @@ Two main components:
 
 The integration between the bot and MCP server is the main gap left for development — the bot handlers need to call `ProxmoxMCPServer` methods and format responses for Telegram.
 
+## Development Rules
+
+- **Minimal changes:** Make the smallest possible change that achieves the goal. Avoid refactoring surrounding code.
+- **Simple architecture:** Prefer the simplest solution. Do not introduce abstractions, layers, or patterns unless strictly necessary.
+- **New dependencies:** Before adding any new tool, library, or external service, ask for consent first.
+- **Unit tests:** Always write unit tests for new or modified logic.
+- **Post-implementation checks:** After every implementation, verify the change works end-to-end (run tests, check logs, manually test the affected behaviour).
+
 ## Key Integration Pattern
 
 ```python
