@@ -7,6 +7,7 @@ import logging
 import os
 import subprocess
 import asyncio
+from datetime import time as dt_time, timezone
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, MessageHandler, CommandHandler, CallbackQueryHandler, filters, ContextTypes
 from dotenv import load_dotenv
@@ -25,6 +26,11 @@ BOT_SCRIPT = f"{BOT_DIR}/src/bot.py"
 BOT_BACKUP = f"{BOT_DIR}/src/bot.py.bak"
 BOT_SERVICE = "hk-bot"
 BOT_REPO_URL = os.getenv("BOT_REPO_URL", "")
+LEADERBOARD_CHAT_IDS = [
+    cid.strip()
+    for cid in os.getenv("LEADERBOARD_CHAT_IDS", "").split(",")
+    if cid.strip()
+]
 
 UPDATE_YES = "update_yes"
 UPDATE_NO = "update_no"
@@ -52,6 +58,19 @@ async def answer_mention(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             else:
                 await message.reply_text(format_top3(entries))
             return
+
+
+async def send_daily_leaderboard(context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not LEADERBOARD_CHAT_IDS:
+        logger.warning("LEADERBOARD_CHAT_IDS not set, skipping daily leaderboard")
+        return
+    entries = fetch_top3()
+    if entries is None:
+        logger.error("Daily leaderboard: failed to fetch top3")
+        return
+    text = format_top3(entries)
+    for chat_id in LEADERBOARD_CHAT_IDS:
+        await context.bot.send_message(chat_id=chat_id, text=text)
 
 
 async def update_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -118,6 +137,10 @@ def main() -> None:
         raise ValueError("TELEGRAM_BOT_TOKEN not set in .cred")
 
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    app.job_queue.run_daily(
+        send_daily_leaderboard,
+        time=dt_time(23, 0, 0, tzinfo=timezone.utc),
+    )
     app.add_handler(CommandHandler("update", update_command))
     app.add_handler(CallbackQueryHandler(update_callback, pattern=f"^{UPDATE_YES}$|^{UPDATE_NO}$"))
     app.add_handler(MessageHandler(filters.ChatType.PRIVATE, answer))

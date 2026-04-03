@@ -137,3 +137,53 @@ class TestAnswerMention:
         with patch("bot.fetch_top3") as mock_fetch:
             await answer_mention(update, ctx)
         mock_fetch.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Tests for send_daily_leaderboard()
+# ---------------------------------------------------------------------------
+
+class TestSendDailyLeaderboard:
+    @pytest.mark.asyncio
+    async def test_sends_leaderboard_to_all_chats(self):
+        import bot
+        original = bot.LEADERBOARD_CHAT_IDS
+        bot.LEADERBOARD_CHAT_IDS = ["-100111", "-100222"]
+        ctx = MagicMock()
+        ctx.bot.send_message = AsyncMock()
+        entries = [{"rank": 1, "user": {"first_name": "A", "last_name": "B"}, "score": 10}]
+        with patch("bot.fetch_top3", return_value=entries), \
+             patch("bot.format_top3", return_value="leaderboard text"):
+            from bot import send_daily_leaderboard
+            await send_daily_leaderboard(ctx)
+        assert ctx.bot.send_message.await_count == 2
+        ctx.bot.send_message.assert_any_await(chat_id="-100111", text="leaderboard text")
+        ctx.bot.send_message.assert_any_await(chat_id="-100222", text="leaderboard text")
+        bot.LEADERBOARD_CHAT_IDS = original
+
+    @pytest.mark.asyncio
+    async def test_skips_when_no_chat_ids_set(self):
+        import bot
+        original = bot.LEADERBOARD_CHAT_IDS
+        bot.LEADERBOARD_CHAT_IDS = []
+        ctx = MagicMock()
+        ctx.bot.send_message = AsyncMock()
+        with patch("bot.fetch_top3") as mock_fetch:
+            from bot import send_daily_leaderboard
+            await send_daily_leaderboard(ctx)
+        mock_fetch.assert_not_called()
+        ctx.bot.send_message.assert_not_awaited()
+        bot.LEADERBOARD_CHAT_IDS = original
+
+    @pytest.mark.asyncio
+    async def test_logs_error_when_fetch_fails(self):
+        import bot
+        original = bot.LEADERBOARD_CHAT_IDS
+        bot.LEADERBOARD_CHAT_IDS = ["-100111"]
+        ctx = MagicMock()
+        ctx.bot.send_message = AsyncMock()
+        with patch("bot.fetch_top3", return_value=None):
+            from bot import send_daily_leaderboard
+            await send_daily_leaderboard(ctx)
+        ctx.bot.send_message.assert_not_awaited()
+        bot.LEADERBOARD_CHAT_IDS = original

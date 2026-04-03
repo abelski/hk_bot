@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python -c ':*)"
+      "Bash(python -c ':*)",
+      "Skill(feature_analyst)",
+      "Skill(feature_analyst:*)",
+      "Bash(pip3 install:*)",
+      "Bash(python -m pytest tests/test_bot_handlers.py -v)",
+      "Bash(python3 -m pytest tests/test_bot_handlers.py -v)"
     ]
   }
 }
