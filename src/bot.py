@@ -6,7 +6,7 @@ Supports /update (with rollback) and /reload to apply config changes at runtime.
 import logging
 import os
 import subprocess
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import Application, MessageHandler, CommandHandler, CallbackQueryHandler, filters, ContextTypes
 from dotenv import load_dotenv
 from apscheduler.triggers.cron import CronTrigger
@@ -29,6 +29,40 @@ BOT_REPO_URL = os.getenv("BOT_REPO_URL", "")
 
 UPDATE_YES = "update_yes"
 UPDATE_NO = "update_no"
+
+
+def _build_media(photos: list, caption: str) -> list:
+    from io import BytesIO
+    caption = caption if len(caption) <= 1024 else caption[:1021] + "..."
+    media = [InputMediaPhoto(media=BytesIO(p)) for p in photos[:10]]
+    media[0] = InputMediaPhoto(media=BytesIO(photos[0]), caption=caption, parse_mode="Markdown")
+    return media
+
+
+async def _send_result(bot_or_query, result, *, is_query: bool = False) -> None:
+    if isinstance(result, dict):
+        text = result.get("text", "")
+        photos = result.get("photos", [])
+        if photos:
+            media = _build_media(photos, text)
+            if is_query:
+                await bot_or_query.edit_message_reply_markup(reply_markup=None)
+                await bot_or_query.message.reply_media_group(media)
+            else:
+                bot, chat_id = bot_or_query
+                await bot.send_media_group(chat_id=chat_id, media=media)
+        else:
+            if is_query:
+                await bot_or_query.edit_message_text(text, parse_mode="Markdown")
+            else:
+                bot, chat_id = bot_or_query
+                await bot.send_message(chat_id=chat_id, text=text, parse_mode="Markdown")
+    else:
+        if is_query:
+            await bot_or_query.edit_message_text(result)
+        else:
+            bot, chat_id = bot_or_query
+            await bot.send_message(chat_id=chat_id, text=result)
 
 
 async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -68,7 +102,7 @@ async def command_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         await query.edit_message_text("Unknown command.")
         return
     result = await cmd.run()
-    await query.edit_message_text(result)
+    await _send_result(query, result, is_query=True)
 
 
 async def reload_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -78,9 +112,12 @@ async def reload_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 def make_cron_callback(cmd_module, chat_ids: list):
     async def callback(context: ContextTypes.DEFAULT_TYPE) -> None:
-        result = await cmd_module.run()
+        run_fn = getattr(cmd_module, "run_if_new", cmd_module.run)
+        result = await run_fn()
+        if result is None:
+            return
         for chat_id in chat_ids:
-            await context.bot.send_message(chat_id=chat_id, text=result)
+            await _send_result((context.bot, chat_id), result)
     return callback
 
 

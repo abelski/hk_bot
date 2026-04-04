@@ -7,6 +7,11 @@
       "command": "woo",
       "recipients": ["main_group"],
       "cron": "0 23 * * *"
+    },
+    {
+      "command": "hkr",
+      "recipients": ["main_group"],
+      "cron": "0 9,18 * * *"
     }
   ]
 }
