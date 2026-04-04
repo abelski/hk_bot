@@ -6,7 +6,12 @@
       "Skill(feature_analyst:*)",
       "Bash(pip3 install:*)",
       "Bash(python -m pytest tests/test_bot_handlers.py -v)",
-      "Bash(python3 -m pytest tests/test_bot_handlers.py -v)"
+      "Bash(python3 -m pytest tests/test_bot_handlers.py -v)",
+      "Bash(python3 -m pytest tests/ -v)",
+      "Bash(ssh root@192.168.0.31 \"pct exec 100 -- mkdir -p /root/hk_bot/src/commands\")",
+      "Bash(scp /Users/Artur_Belski/Documents/src/hk_bot/src/bot.py /Users/Artur_Belski/Documents/src/hk_bot/src/config_loader.py root@192.168.0.31:/tmp/)",
+      "Bash(scp /Users/Artur_Belski/Documents/src/hk_bot/src/commands/__init__.py /Users/Artur_Belski/Documents/src/hk_bot/src/commands/woo_command.py root@192.168.0.31:/tmp/)",
+      "Bash(scp /Users/Artur_Belski/Documents/src/hk_bot/config.json root@192.168.0.31:/tmp/)"
     ]
   }
 }

@@ -1,0 +1,12 @@
+{
+  "recipients": {
+    "main_group": "-4570601504"
+  },
+  "mappings": [
+    {
+      "command": "woo",
+      "recipients": ["main_group"],
+      "cron": "0 23 * * *"
+    }
+  ]
+}

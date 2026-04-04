@@ -1,17 +1,17 @@
 """
-Simple Telegram bot — replies Hello to every message.
-Supports /update command with inline confirmation and automatic rollback.
+Telegram bot — command dispatch via config.json.
+Supports /update (with rollback) and /reload to apply config changes at runtime.
 """
 
 import logging
 import os
 import subprocess
-import asyncio
-from datetime import time as dt_time, timezone
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, MessageHandler, CommandHandler, CallbackQueryHandler, filters, ContextTypes
 from dotenv import load_dotenv
-from leaderboard import fetch_top3, format_top3
+from apscheduler.triggers.cron import CronTrigger
+from commands import load_commands
+from config_loader import load_config
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -26,23 +26,13 @@ BOT_SCRIPT = f"{BOT_DIR}/src/bot.py"
 BOT_BACKUP = f"{BOT_DIR}/src/bot.py.bak"
 BOT_SERVICE = "hk-bot"
 BOT_REPO_URL = os.getenv("BOT_REPO_URL", "")
-LEADERBOARD_CHAT_IDS = [
-    cid.strip()
-    for cid in os.getenv("LEADERBOARD_CHAT_IDS", "").split(",")
-    if cid.strip()
-]
 
 UPDATE_YES = "update_yes"
 UPDATE_NO = "update_no"
 
 
 async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    message = update.effective_message
-    entries = fetch_top3()
-    if entries is None:
-        await message.reply_text("Could not fetch leaderboard, please try again later.")
-    else:
-        await message.reply_text(format_top3(entries))
+    await _show_commands(update.effective_message)
 
 
 async def answer_mention(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -52,25 +42,81 @@ async def answer_mention(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     bot_username = context.bot.username
     for text in message.parse_entities(["mention"]).values():
         if text.lower() == f"@{bot_username}".lower():
-            entries = fetch_top3()
-            if entries is None:
-                await message.reply_text("Could not fetch leaderboard, please try again later.")
-            else:
-                await message.reply_text(format_top3(entries))
+            await _show_commands(message)
             return
 
 
-async def send_daily_leaderboard(context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not LEADERBOARD_CHAT_IDS:
-        logger.warning("LEADERBOARD_CHAT_IDS not set, skipping daily leaderboard")
+async def _show_commands(message) -> None:
+    commands = load_commands()
+    buttons = [
+        [InlineKeyboardButton(cmd.LABEL, callback_data=f"cmd_{cmd.NAME}")]
+        for cmd in commands
+    ]
+    await message.reply_text(
+        "Available commands:",
+        reply_markup=InlineKeyboardMarkup(buttons),
+    )
+
+
+async def command_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    cmd_name = query.data[4:]  # strip "cmd_" prefix
+    commands = {cmd.NAME: cmd for cmd in load_commands()}
+    cmd = commands.get(cmd_name)
+    if cmd is None:
+        await query.edit_message_text("Unknown command.")
         return
-    entries = fetch_top3()
-    if entries is None:
-        logger.error("Daily leaderboard: failed to fetch top3")
-        return
-    text = format_top3(entries)
-    for chat_id in LEADERBOARD_CHAT_IDS:
-        await context.bot.send_message(chat_id=chat_id, text=text)
+    result = await cmd.run()
+    await query.edit_message_text(result)
+
+
+async def reload_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    schedule_jobs(context.application)
+    await update.message.reply_text("Config reloaded.")
+
+
+def make_cron_callback(cmd_module, chat_ids: list):
+    async def callback(context: ContextTypes.DEFAULT_TYPE) -> None:
+        result = await cmd_module.run()
+        for chat_id in chat_ids:
+            await context.bot.send_message(chat_id=chat_id, text=result)
+    return callback
+
+
+def schedule_jobs(app) -> None:
+    for job in app.job_queue.jobs():
+        if job.name and job.name.startswith("cron_"):
+            job.schedule_removal()
+
+    config = load_config()
+    recipients = config.get("recipients", {})
+    commands = {cmd.NAME: cmd for cmd in load_commands()}
+    for i, mapping in enumerate(config.get("mappings", [])):
+        cmd_name = mapping.get("command")
+        recipient_names = mapping.get("recipients", [])
+        cron = mapping.get("cron")
+        if not (cmd_name and recipient_names and cron):
+            continue
+        cmd = commands.get(cmd_name)
+        if cmd is None:
+            logger.warning("Unknown command in config: %s", cmd_name)
+            continue
+        chat_ids = []
+        for name in recipient_names:
+            chat_id = recipients.get(name)
+            if chat_id is None:
+                logger.warning("Unknown recipient '%s' in mapping %d", name, i)
+            else:
+                chat_ids.append(chat_id)
+        if not chat_ids:
+            continue
+        app.job_queue.run_custom(
+            make_cron_callback(cmd, chat_ids),
+            job_kwargs={"trigger": CronTrigger.from_crontab(cron)},
+            name=f"cron_{cmd_name}_{i}",
+        )
+        logger.info("Scheduled %s for %s with cron '%s'", cmd_name, recipient_names, cron)
 
 
 async def update_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -137,12 +183,11 @@ def main() -> None:
         raise ValueError("TELEGRAM_BOT_TOKEN not set in .cred")
 
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
-    app.job_queue.run_daily(
-        send_daily_leaderboard,
-        time=dt_time(23, 0, 0, tzinfo=timezone.utc),
-    )
+    schedule_jobs(app)
     app.add_handler(CommandHandler("update", update_command))
+    app.add_handler(CommandHandler("reload", reload_command))
     app.add_handler(CallbackQueryHandler(update_callback, pattern=f"^{UPDATE_YES}$|^{UPDATE_NO}$"))
+    app.add_handler(CallbackQueryHandler(command_callback, pattern=r"^cmd_"))
     app.add_handler(MessageHandler(filters.ChatType.PRIVATE, answer))
     app.add_handler(MessageHandler(
         (filters.ChatType.GROUPS | filters.ChatType.CHANNEL) & filters.Entity("mention"),

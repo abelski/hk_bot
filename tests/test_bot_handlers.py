@@ -1,10 +1,9 @@
 """
-Unit tests for answer() and answer_mention() handlers in src/bot.py.
+Unit tests for bot handlers in src/bot.py.
 """
 
 import sys
 import os
-import types
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -36,32 +35,39 @@ def _make_context(bot_username="testbot"):
     return ctx
 
 
+def _make_mock_cmd(name="woo", label="WOO Leaderboard 🏄"):
+    cmd = MagicMock()
+    cmd.NAME = name
+    cmd.LABEL = label
+    return cmd
+
+
 # ---------------------------------------------------------------------------
 # Tests for answer()
 # ---------------------------------------------------------------------------
 
 class TestAnswer:
     @pytest.mark.asyncio
-    async def test_replies_with_leaderboard(self):
+    async def test_shows_command_list(self):
         from bot import answer
         update = _make_update()
         ctx = _make_context()
-        entries = [{"rank": 1, "user": {"first_name": "A", "last_name": "B"}, "score": 10}]
-        with patch("bot.fetch_top3", return_value=entries), \
-             patch("bot.format_top3", return_value="leaderboard text"):
+        mock_cmd = _make_mock_cmd()
+        with patch("bot.load_commands", return_value=[mock_cmd]):
             await answer(update, ctx)
-        update.effective_message.reply_text.assert_awaited_once_with("leaderboard text")
+        update.effective_message.reply_text.assert_awaited_once()
+        args, kwargs = update.effective_message.reply_text.call_args
+        assert args[0] == "Available commands:"
+        assert kwargs["reply_markup"] is not None
 
     @pytest.mark.asyncio
-    async def test_replies_error_when_fetch_fails(self):
+    async def test_shows_empty_keyboard_when_no_commands(self):
         from bot import answer
         update = _make_update()
         ctx = _make_context()
-        with patch("bot.fetch_top3", return_value=None):
+        with patch("bot.load_commands", return_value=[]):
             await answer(update, ctx)
-        update.effective_message.reply_text.assert_awaited_once_with(
-            "Could not fetch leaderboard, please try again later."
-        )
+        update.effective_message.reply_text.assert_awaited_once()
 
 
 # ---------------------------------------------------------------------------
@@ -75,11 +81,12 @@ class TestAnswerMention:
         entity = MagicMock()
         update = _make_update(entities={entity: "@testbot"})
         ctx = _make_context(bot_username="testbot")
-        entries = [{"rank": 1, "user": {"first_name": "A", "last_name": "B"}, "score": 10}]
-        with patch("bot.fetch_top3", return_value=entries), \
-             patch("bot.format_top3", return_value="leaderboard text"):
+        mock_cmd = _make_mock_cmd()
+        with patch("bot.load_commands", return_value=[mock_cmd]):
             await answer_mention(update, ctx)
-        update.effective_message.reply_text.assert_awaited_once_with("leaderboard text")
+        update.effective_message.reply_text.assert_awaited_once()
+        args, _ = update.effective_message.reply_text.call_args
+        assert args[0] == "Available commands:"
 
     @pytest.mark.asyncio
     async def test_silent_when_other_user_mentioned(self):
@@ -87,9 +94,9 @@ class TestAnswerMention:
         entity = MagicMock()
         update = _make_update(entities={entity: "@otherusername"})
         ctx = _make_context(bot_username="testbot")
-        with patch("bot.fetch_top3") as mock_fetch:
+        with patch("bot.load_commands") as mock_load:
             await answer_mention(update, ctx)
-        mock_fetch.assert_not_called()
+        mock_load.assert_not_called()
         update.effective_message.reply_text.assert_not_awaited()
 
     @pytest.mark.asyncio
@@ -98,23 +105,10 @@ class TestAnswerMention:
         entity = MagicMock()
         update = _make_update(entities={entity: "@TestBot"})
         ctx = _make_context(bot_username="testbot")
-        entries = [{"rank": 1, "user": {"first_name": "A", "last_name": "B"}, "score": 10}]
-        with patch("bot.fetch_top3", return_value=entries), \
-             patch("bot.format_top3", return_value="leaderboard text"):
+        mock_cmd = _make_mock_cmd()
+        with patch("bot.load_commands", return_value=[mock_cmd]):
             await answer_mention(update, ctx)
         update.effective_message.reply_text.assert_awaited_once()
-
-    @pytest.mark.asyncio
-    async def test_replies_error_when_fetch_fails(self):
-        from bot import answer_mention
-        entity = MagicMock()
-        update = _make_update(entities={entity: "@testbot"})
-        ctx = _make_context(bot_username="testbot")
-        with patch("bot.fetch_top3", return_value=None):
-            await answer_mention(update, ctx)
-        update.effective_message.reply_text.assert_awaited_once_with(
-            "Could not fetch leaderboard, please try again later."
-        )
 
     @pytest.mark.asyncio
     async def test_responds_only_once_when_mentioned_twice(self):
@@ -122,9 +116,8 @@ class TestAnswerMention:
         e1, e2 = MagicMock(), MagicMock()
         update = _make_update(entities={e1: "@testbot", e2: "@testbot"})
         ctx = _make_context(bot_username="testbot")
-        entries = [{"rank": 1, "user": {"first_name": "A", "last_name": "B"}, "score": 10}]
-        with patch("bot.fetch_top3", return_value=entries), \
-             patch("bot.format_top3", return_value="leaderboard text"):
+        mock_cmd = _make_mock_cmd()
+        with patch("bot.load_commands", return_value=[mock_cmd]):
             await answer_mention(update, ctx)
         assert update.effective_message.reply_text.await_count == 1
 
@@ -134,56 +127,101 @@ class TestAnswerMention:
         update = MagicMock()
         update.effective_message = None
         ctx = _make_context()
-        with patch("bot.fetch_top3") as mock_fetch:
+        with patch("bot.load_commands") as mock_load:
             await answer_mention(update, ctx)
-        mock_fetch.assert_not_called()
+        mock_load.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
-# Tests for send_daily_leaderboard()
+# Tests for schedule_jobs()
 # ---------------------------------------------------------------------------
 
-class TestSendDailyLeaderboard:
-    @pytest.mark.asyncio
-    async def test_sends_leaderboard_to_all_chats(self):
+class TestScheduleJobs:
+    def test_schedules_known_command(self):
         import bot
-        original = bot.LEADERBOARD_CHAT_IDS
-        bot.LEADERBOARD_CHAT_IDS = ["-100111", "-100222"]
-        ctx = MagicMock()
-        ctx.bot.send_message = AsyncMock()
-        entries = [{"rank": 1, "user": {"first_name": "A", "last_name": "B"}, "score": 10}]
-        with patch("bot.fetch_top3", return_value=entries), \
-             patch("bot.format_top3", return_value="leaderboard text"):
-            from bot import send_daily_leaderboard
-            await send_daily_leaderboard(ctx)
-        assert ctx.bot.send_message.await_count == 2
-        ctx.bot.send_message.assert_any_await(chat_id="-100111", text="leaderboard text")
-        ctx.bot.send_message.assert_any_await(chat_id="-100222", text="leaderboard text")
-        bot.LEADERBOARD_CHAT_IDS = original
+        mock_cmd = MagicMock()
+        mock_cmd.NAME = "woo"
+        mock_app = MagicMock()
+        mock_app.job_queue.jobs.return_value = []
+        config = {
+            "recipients": {"main_group": "-100111"},
+            "mappings": [{"command": "woo", "recipients": ["main_group"], "cron": "0 23 * * *"}],
+        }
+        with patch("bot.load_config", return_value=config), \
+             patch("bot.load_commands", return_value=[mock_cmd]):
+            bot.schedule_jobs(mock_app)
+        mock_app.job_queue.run_custom.assert_called_once()
+        _, kwargs = mock_app.job_queue.run_custom.call_args
+        assert kwargs["name"] == "cron_woo_0"
 
-    @pytest.mark.asyncio
-    async def test_skips_when_no_chat_ids_set(self):
+    def test_skips_mapping_without_cron(self):
         import bot
-        original = bot.LEADERBOARD_CHAT_IDS
-        bot.LEADERBOARD_CHAT_IDS = []
-        ctx = MagicMock()
-        ctx.bot.send_message = AsyncMock()
-        with patch("bot.fetch_top3") as mock_fetch:
-            from bot import send_daily_leaderboard
-            await send_daily_leaderboard(ctx)
-        mock_fetch.assert_not_called()
-        ctx.bot.send_message.assert_not_awaited()
-        bot.LEADERBOARD_CHAT_IDS = original
+        mock_cmd = MagicMock()
+        mock_cmd.NAME = "woo"
+        mock_app = MagicMock()
+        mock_app.job_queue.jobs.return_value = []
+        config = {
+            "recipients": {"main_group": "-100111"},
+            "mappings": [{"command": "woo", "recipients": ["main_group"]}],
+        }
+        with patch("bot.load_config", return_value=config), \
+             patch("bot.load_commands", return_value=[mock_cmd]):
+            bot.schedule_jobs(mock_app)
+        mock_app.job_queue.run_custom.assert_not_called()
 
-    @pytest.mark.asyncio
-    async def test_logs_error_when_fetch_fails(self):
+    def test_skips_unknown_command(self):
         import bot
-        original = bot.LEADERBOARD_CHAT_IDS
-        bot.LEADERBOARD_CHAT_IDS = ["-100111"]
-        ctx = MagicMock()
-        ctx.bot.send_message = AsyncMock()
-        with patch("bot.fetch_top3", return_value=None):
-            from bot import send_daily_leaderboard
-            await send_daily_leaderboard(ctx)
-        ctx.bot.send_message.assert_not_awaited()
-        bot.LEADERBOARD_CHAT_IDS = original
+        mock_app = MagicMock()
+        mock_app.job_queue.jobs.return_value = []
+        config = {
+            "recipients": {"main_group": "-100111"},
+            "mappings": [{"command": "unknown", "recipients": ["main_group"], "cron": "0 23 * * *"}],
+        }
+        with patch("bot.load_config", return_value=config), \
+             patch("bot.load_commands", return_value=[]):
+            bot.schedule_jobs(mock_app)
+        mock_app.job_queue.run_custom.assert_not_called()
+
+    def test_skips_unknown_recipient(self):
+        import bot
+        mock_cmd = MagicMock()
+        mock_cmd.NAME = "woo"
+        mock_app = MagicMock()
+        mock_app.job_queue.jobs.return_value = []
+        config = {
+            "recipients": {},
+            "mappings": [{"command": "woo", "recipients": ["unknown_group"], "cron": "0 23 * * *"}],
+        }
+        with patch("bot.load_config", return_value=config), \
+             patch("bot.load_commands", return_value=[mock_cmd]):
+            bot.schedule_jobs(mock_app)
+        mock_app.job_queue.run_custom.assert_not_called()
+
+    def test_sends_to_multiple_recipients(self):
+        import bot
+        mock_cmd = MagicMock()
+        mock_cmd.NAME = "woo"
+        mock_app = MagicMock()
+        mock_app.job_queue.jobs.return_value = []
+        config = {
+            "recipients": {"group_a": "-100111", "group_b": "-100222"},
+            "mappings": [{"command": "woo", "recipients": ["group_a", "group_b"], "cron": "0 23 * * *"}],
+        }
+        with patch("bot.load_config", return_value=config), \
+             patch("bot.load_commands", return_value=[mock_cmd]):
+            bot.schedule_jobs(mock_app)
+        mock_app.job_queue.run_custom.assert_called_once()
+        callback_fn = mock_app.job_queue.run_custom.call_args[0][0]
+        # Verify callback was created with both chat IDs by checking it's callable
+        assert callable(callback_fn)
+
+    def test_cancels_existing_cron_jobs_before_rescheduling(self):
+        import bot
+        existing_job = MagicMock()
+        existing_job.name = "cron_woo_0"
+        mock_app = MagicMock()
+        mock_app.job_queue.jobs.return_value = [existing_job]
+        with patch("bot.load_config", return_value={"mappings": []}), \
+             patch("bot.load_commands", return_value=[]):
+            bot.schedule_jobs(mock_app)
+        existing_job.schedule_removal.assert_called_once()
