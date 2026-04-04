@@ -29,11 +29,21 @@ BOT_REPO_URL = os.getenv("BOT_REPO_URL", "")
 
 UPDATE_YES = "update_yes"
 UPDATE_NO = "update_no"
+ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
+
+
+def _split_at_paragraph(text: str, max_len: int = 1024):
+    """Return (head, tail) split at a paragraph boundary within max_len chars."""
+    if len(text) <= max_len:
+        return text, ""
+    split = text.rfind("\n\n", 0, max_len)
+    if split != -1:
+        return text[:split], text[split + 2:].strip()
+    return text[:max_len], text[max_len:].strip()
 
 
 def _build_media(photos: list, caption: str) -> list:
     from io import BytesIO
-    caption = caption if len(caption) <= 1024 else caption[:1021] + "..."
     media = [InputMediaPhoto(media=BytesIO(p)) for p in photos[:10]]
     media[0] = InputMediaPhoto(media=BytesIO(photos[0]), caption=caption, parse_mode="Markdown")
     return media
@@ -44,13 +54,18 @@ async def _send_result(bot_or_query, result, *, is_query: bool = False) -> None:
         text = result.get("text", "")
         photos = result.get("photos", [])
         if photos:
-            media = _build_media(photos, text)
+            caption, overflow = _split_at_paragraph(text)
+            media = _build_media(photos, caption)
             if is_query:
                 await bot_or_query.edit_message_reply_markup(reply_markup=None)
                 await bot_or_query.message.reply_media_group(media)
+                if overflow:
+                    await bot_or_query.message.reply_text(overflow, parse_mode="Markdown")
             else:
                 bot, chat_id = bot_or_query
                 await bot.send_media_group(chat_id=chat_id, media=media)
+                if overflow:
+                    await bot.send_message(chat_id=chat_id, text=overflow, parse_mode="Markdown")
         else:
             if is_query:
                 await bot_or_query.edit_message_text(text, parse_mode="Markdown")
@@ -106,6 +121,8 @@ async def command_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 
 async def reload_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.effective_user.id != ADMIN_ID:
+        return
     schedule_jobs(context.application)
     await update.message.reply_text("Config reloaded.")
 
@@ -157,6 +174,8 @@ def schedule_jobs(app) -> None:
 
 
 async def update_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.effective_user.id != ADMIN_ID:
+        return
     keyboard = [[
         InlineKeyboardButton("Yes ✓", callback_data=UPDATE_YES),
         InlineKeyboardButton("No ✗", callback_data=UPDATE_NO),

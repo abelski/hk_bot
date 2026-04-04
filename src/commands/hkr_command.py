@@ -3,6 +3,7 @@ import json
 import base64
 import time
 import requests
+from commands.helpers.translate import translate_to_russian
 
 _API_URL = "https://honestkitereviews.com/api/reviews"
 _STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../hkr_state.json")
@@ -48,7 +49,7 @@ def _format(review) -> dict:
     text = (
         f"*{review['productName']}*\n"
         f"Brand: {review.get('brand', '?')} | Type: {review.get('productType', '?')}\n\n"
-        f"{review.get('writeUp', '')}\n\n"
+        f"{translate_to_russian(review.get('writeUp', ''))}\n\n"
         f"Safety: {safety} | Reviewed by {reviewer}"
     )
     photos = []

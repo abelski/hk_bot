@@ -83,3 +83,28 @@ class TestHkrCommand:
         assert isinstance(cmd.NAME, str)
         assert isinstance(cmd.LABEL, str)
         assert callable(cmd.run)
+
+
+class TestTranslateHelper:
+    def test_returns_translated_text(self):
+        from commands.helpers.translate import translate_to_russian
+        with patch("commands.helpers.translate._translate_chunk", return_value="привет"):
+            result = translate_to_russian("hello")
+        assert result == "привет"
+
+    def test_falls_back_on_chunk_failure(self):
+        from commands.helpers.translate import translate_to_russian
+        with patch("commands.helpers.translate._translate_chunk", return_value=None):
+            result = translate_to_russian("hello")
+        assert result == "hello"
+
+    def test_returns_empty_string_unchanged(self):
+        from commands.helpers.translate import translate_to_russian
+        assert translate_to_russian("") == ""
+
+    def test_splits_long_text_into_chunks(self):
+        from commands.helpers.translate import _split
+        long = "A" * 400 + "\n\n" + "B" * 400
+        chunks = _split(long)
+        assert len(chunks) == 2
+        assert all(len(c) <= 500 for c in chunks)
