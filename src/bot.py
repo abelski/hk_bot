@@ -53,8 +53,10 @@ def _build_media(photos: list, caption: str) -> list:
 
 async def _send_result(bot_or_query, result, *, is_query: bool = False) -> None:
     if isinstance(result, dict):
+        from io import BytesIO
         text = result.get("text", "")
         photos = result.get("photos", [])
+        video = result.get("video")
         if photos:
             caption, overflow = _split_at_paragraph(text)
             media = _build_media(photos, caption)
@@ -66,6 +68,18 @@ async def _send_result(bot_or_query, result, *, is_query: bool = False) -> None:
             else:
                 bot, chat_id = bot_or_query
                 await bot.send_media_group(chat_id=chat_id, media=media)
+                if overflow:
+                    await bot.send_message(chat_id=chat_id, text=overflow, parse_mode="Markdown")
+        elif video:
+            caption, overflow = _split_at_paragraph(text)
+            if is_query:
+                await bot_or_query.edit_message_reply_markup(reply_markup=None)
+                await bot_or_query.message.reply_video(BytesIO(video), caption=caption, parse_mode="Markdown")
+                if overflow:
+                    await bot_or_query.message.reply_text(overflow, parse_mode="Markdown")
+            else:
+                bot, chat_id = bot_or_query
+                await bot.send_video(chat_id=chat_id, video=BytesIO(video), caption=caption, parse_mode="Markdown")
                 if overflow:
                     await bot.send_message(chat_id=chat_id, text=overflow, parse_mode="Markdown")
         else:

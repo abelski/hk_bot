@@ -261,3 +261,21 @@ class TestInstagramCommand:
         assert isinstance(InstagramCommand.LABEL, str)
         assert callable(InstagramCommand().run)
         assert callable(InstagramCommand().run_if_new)
+
+    def test_format_returns_photos_for_image_post(self):
+        from commands.instagram_command import _format
+        post = {"is_video": False, "media": b"img", "caption": "hello", "url": "https://www.instagram.com/p/abc/"}
+        with patch("commands.instagram_command.translate_to_russian", return_value="привет"):
+            result = _format(post, {"username": "user", "name": "User"})
+        assert "photos" in result
+        assert result["photos"] == [b"img"]
+        assert "video" not in result
+
+    def test_format_returns_video_for_video_post(self):
+        from commands.instagram_command import _format
+        post = {"is_video": True, "media": b"vid", "caption": "hello", "url": "https://www.instagram.com/p/abc/"}
+        with patch("commands.instagram_command.translate_to_russian", return_value="привет"):
+            result = _format(post, {"username": "user", "name": "User"})
+        assert "video" in result
+        assert result["video"] == b"vid"
+        assert "photos" not in result

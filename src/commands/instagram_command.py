@@ -59,12 +59,15 @@ def _fetch(username: str, retries: int = 2) -> dict | None:
             )
             profile = instaloader.Profile.from_username(L.context, username)
             post = next(profile.get_posts())
-            img = requests.get(post.url, timeout=15)
-            img.raise_for_status()
+            is_video = post.is_video
+            media_url = post.video_url if is_video else post.url
+            media = requests.get(media_url, timeout=30)
+            media.raise_for_status()
             return {
                 "shortcode": post.shortcode,
                 "caption": post.caption or "",
-                "image": img.content,
+                "is_video": is_video,
+                "media": media.content,
                 "url": f"https://www.instagram.com/p/{post.shortcode}/",
             }
         except StopIteration:
@@ -79,7 +82,9 @@ def _format(post: dict, account: dict) -> dict:
     name = account.get("name", account["username"])
     caption = translate_to_russian(post["caption"]) if post["caption"] else ""
     text = f"*{name}*\n\n{caption}\n\n[Пост]({post['url']})" if caption else f"*{name}*\n\n[Пост]({post['url']})"
-    return {"text": text, "photos": [post["image"]]}
+    if post["is_video"]:
+        return {"text": text, "video": post["media"]}
+    return {"text": text, "photos": [post["media"]]}
 
 
 def _load_state() -> dict:
