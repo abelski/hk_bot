@@ -196,3 +196,68 @@ class TestWindguruCommand:
         assert _wind_stars(20) == "⭐⭐⭐⭐⭐"
         assert _wind_stars(28) == "⭐⭐⭐"
         assert _wind_stars(35) == "⭐"
+
+
+class TestInstagramCommand:
+    @pytest.mark.asyncio
+    async def test_returns_formatted_result(self):
+        from commands.instagram_command import InstagramCommand
+        post = {"shortcode": "abc123", "caption": "Hello", "image": b"img", "url": "https://www.instagram.com/p/abc123/"}
+        accounts = [{"username": "testuser", "name": "Test"}]
+        with patch("commands.instagram_command._load_accounts", return_value=accounts), \
+             patch("commands.instagram_command._fetch", return_value=post), \
+             patch("commands.instagram_command._save_state"), \
+             patch("commands.instagram_command._format", return_value={"text": "formatted", "photos": [b"img"]}):
+            result = await InstagramCommand().run()
+        assert result == {"text": "formatted", "photos": [b"img"]}
+
+    @pytest.mark.asyncio
+    async def test_returns_error_when_fetch_fails(self):
+        from commands.instagram_command import InstagramCommand
+        accounts = [{"username": "testuser", "name": "Test"}]
+        with patch("commands.instagram_command._load_accounts", return_value=accounts), \
+             patch("commands.instagram_command._fetch", return_value=None):
+            result = await InstagramCommand().run()
+        assert "Could not fetch" in result
+
+    @pytest.mark.asyncio
+    async def test_returns_message_when_no_accounts(self):
+        from commands.instagram_command import InstagramCommand
+        with patch("commands.instagram_command._load_accounts", return_value=[]):
+            result = await InstagramCommand().run()
+        assert "config.json" in result
+
+    @pytest.mark.asyncio
+    async def test_run_if_new_returns_none_when_same(self):
+        from commands.instagram_command import InstagramCommand
+        post = {"shortcode": "abc123", "caption": "Hello", "image": b"img", "url": "https://www.instagram.com/p/abc123/"}
+        accounts = [{"username": "testuser", "name": "Test"}]
+        with patch("commands.instagram_command._load_accounts", return_value=accounts), \
+             patch("commands.instagram_command._fetch", return_value=post), \
+             patch("commands.instagram_command._load_state", return_value={"testuser": "abc123"}):
+            result = await InstagramCommand().run_if_new()
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_run_if_new_returns_result_when_new(self):
+        from commands.instagram_command import InstagramCommand
+        post = {"shortcode": "new999", "caption": "New post", "image": b"img", "url": "https://www.instagram.com/p/new999/"}
+        accounts = [{"username": "testuser", "name": "Test"}]
+        with patch("commands.instagram_command._load_accounts", return_value=accounts), \
+             patch("commands.instagram_command._fetch", return_value=post), \
+             patch("commands.instagram_command._load_state", return_value={"testuser": "old123"}), \
+             patch("commands.instagram_command._save_state"), \
+             patch("commands.instagram_command._format", return_value={"text": "new post", "photos": [b"img"]}):
+            result = await InstagramCommand().run_if_new()
+        assert result == {"text": "new post", "photos": [b"img"]}
+
+    def test_has_required_interface(self):
+        from commands.instagram_command import InstagramCommand
+        from api.abstract_request_command import AbstractRequestCommand
+        from api.abstract_news_command import AbstractNewsCommand
+        assert issubclass(InstagramCommand, AbstractRequestCommand)
+        assert issubclass(InstagramCommand, AbstractNewsCommand)
+        assert isinstance(InstagramCommand.NAME, str)
+        assert isinstance(InstagramCommand.LABEL, str)
+        assert callable(InstagramCommand().run)
+        assert callable(InstagramCommand().run_if_new)
