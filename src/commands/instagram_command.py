@@ -72,6 +72,8 @@ def _fetch(username: str, retries: int = 2) -> dict | None:
             }
         except StopIteration:
             return None
+        except instaloader.exceptions.TooManyRequestsException:
+            return None
         except Exception:
             if attempt == retries:
                 return None
