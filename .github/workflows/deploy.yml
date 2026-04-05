@@ -22,11 +22,19 @@ jobs:
             pct exec 100 -- mkdir -p /root/hk_bot/$dir
             pct push 100 "$f" /root/hk_bot/$f
           done
+          pct push 100 requirements.txt /root/hk_bot/requirements.txt
+          pct exec 100 -- pip3 install -q -r /root/hk_bot/requirements.txt
+          pct push 100 config.json /root/hk_bot/config.json
 
       - name: Restart bot
         run: pct exec 100 -- systemctl restart hk-bot
 
       - name: Verify bot is running
         run: |
-          sleep 3
-          pct exec 100 -- systemctl is-active hk-bot
+          for i in $(seq 1 5); do
+            sleep 3
+            status=$(pct exec 100 -- systemctl is-active hk-bot)
+            [ "$status" = "active" ] && exit 0
+            echo "Attempt $i: $status"
+          done
+          echo "Service did not become active"; exit 1

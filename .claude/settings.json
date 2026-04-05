@@ -22,7 +22,11 @@
       "Bash(scp /Users/Artur_Belski/Documents/src/hk_bot/src/commands/windguru_command.py root@192.168.0.31:/tmp/windguru_command.py)",
       "Bash(scp /Users/Artur_Belski/Documents/src/hk_bot/src/commands/woo_command.py root@192.168.0.31:/tmp/woo_command.py)",
       "Bash(scp /Users/Artur_Belski/Documents/src/hk_bot/src/commands/helpers/translate.py root@192.168.0.31:/tmp/translate.py)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(python3 src/bot.py)",
+      "Bash(ssh root@192.168.0.31 \"pct push 100 /root/hk_bot/config.json /tmp/config_backup.json 2>/dev/null; echo done\")",
+      "Bash(scp /Users/Artur_Belski/Documents/src/hk_bot/config.json root@192.168.0.31:/tmp/config.json)",
+      "Bash(ssh root@192.168.0.31 \"pct push 100 /tmp/config.json /root/hk_bot/config.json && pct exec 100 -- cat /root/hk_bot/config.json\")"
     ]
   }
 }
