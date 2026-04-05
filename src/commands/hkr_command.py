@@ -3,31 +3,33 @@ import json
 import base64
 import time
 import requests
-from commands.helpers.translate import translate_to_russian
+from api.abstract_request_command import AbstractRequestCommand
+from api.abstract_news_command import AbstractNewsCommand
+from helpers.translation_helper import translate_to_russian
 
 _API_URL = "https://honestkitereviews.com/api/reviews"
 _STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../hkr_state.json")
 
-NAME = "hkr"
-LABEL = "HKR Reviews 🪁"
 
+class HkrCommand(AbstractRequestCommand, AbstractNewsCommand):
+    NAME = "hkr"
+    LABEL = "HKR Reviews 🪁"
 
-async def run():
-    data = _fetch()
-    if data is None:
-        return "Could not fetch review, please try again later."
-    _save_state(data["id"])
-    return _format(data)
+    async def run(self):
+        data = _fetch()
+        if data is None:
+            return "Could not fetch review, please try again later."
+        _save_state(data["id"])
+        return _format(data)
 
-
-async def run_if_new():
-    data = _fetch()
-    if data is None:
-        return None
-    if data["id"] == _load_state():
-        return None
-    _save_state(data["id"])
-    return _format(data)
+    async def run_if_new(self):
+        data = _fetch()
+        if data is None:
+            return None
+        if data["id"] == _load_state():
+            return None
+        _save_state(data["id"])
+        return _format(data)
 
 
 def _fetch(retries=2):

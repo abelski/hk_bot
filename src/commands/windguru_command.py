@@ -3,9 +3,8 @@ import os
 import time
 import requests
 from datetime import datetime, timedelta, timezone
-
-NAME = "windguru"
-LABEL = "Wind Forecast 🌬️"
+from api.abstract_request_command import AbstractRequestCommand
+from api.abstract_cron_command import AbstractCronCommand
 
 _CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "config.json")
 _SPOT_PAGE_URL = "https://www.windguru.cz/{spot_id}"
@@ -19,9 +18,33 @@ _DIRS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
 _MONTHS_RU = ["", "января", "февраля", "марта", "апреля", "мая", "июня",
               "июля", "августа", "сентября", "октября", "ноября", "декабря"]
 
-# Local daytime window to display (clock hours in spot's local timezone)
 _LOCAL_DAY_START = 6
 _LOCAL_DAY_END = 22
+
+
+class WindguruCommand(AbstractRequestCommand, AbstractCronCommand):
+    NAME = "windguru"
+    LABEL = "Wind Forecast 🌬️"
+
+    async def run(self) -> str:
+        spots = _load_spots()
+        if not spots:
+            return "No spots configured. Add windguru_spots to config.json."
+
+        parts = []
+        for spot in spots:
+            data = _fetch(spot["id"])
+            if data is None:
+                parts.append(f"🌬️ *{spot['name']}*\nНе удалось получить прогноз.")
+                continue
+            fcst = data.get("fcst")
+            if not fcst:
+                parts.append(f"🌬️ *{spot['name']}*\nДанные прогноза недоступны.")
+                continue
+            tz_offset = spot.get("tz_offset", 0)
+            parts.append(_format(spot["name"], fcst, tz_offset))
+
+        return "\n\n".join(parts)
 
 
 def _load_spots():
@@ -38,7 +61,7 @@ def _fetch(spot_id, retries=2):
     try:
         session.get(_SPOT_PAGE_URL.format(spot_id=spot_id), timeout=15)
     except Exception:
-        pass  # Proceed even if cookie fetch fails
+        pass
 
     params = {
         "q": "forecast",
@@ -80,7 +103,6 @@ def _wind_color(kn):
 
 
 def _wind_stars(kn):
-    # Kitesurfing quality: ideal 13-25 kn
     if kn < 8:
         return "·"
     if kn < 13:
@@ -144,24 +166,3 @@ def _format(spot_name, data, tz_offset=0):
             lines.append(f"{color} `{hour:02d}:00`  {direction:<3}  {spd}kn {gust_str}  {stars}")
 
     return "\n".join(lines)
-
-
-async def run() -> str:
-    spots = _load_spots()
-    if not spots:
-        return "No spots configured. Add windguru_spots to config.json."
-
-    parts = []
-    for spot in spots:
-        data = _fetch(spot["id"])
-        if data is None:
-            parts.append(f"🌬️ *{spot['name']}*\nНе удалось получить прогноз.")
-            continue
-        fcst = data.get("fcst")
-        if not fcst:
-            parts.append(f"🌬️ *{spot['name']}*\nДанные прогноза недоступны.")
-            continue
-        tz_offset = spot.get("tz_offset", 0)
-        parts.append(_format(spot["name"], fcst, tz_offset))
-
-    return "\n\n".join(parts)

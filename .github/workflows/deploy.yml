@@ -1,0 +1,32 @@
+name: Deploy to CT 100
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write deploy version
+        run: |
+          echo "${{ github.sha }} ${{ github.event.head_commit.message }}" > deploy_version.txt
+          pct push 100 deploy_version.txt /root/hk_bot/deploy_version.txt
+
+      - name: Sync src to CT 100
+        run: |
+          find src -name "*.py" | while read f; do
+            dir=$(dirname "$f")
+            pct exec 100 -- mkdir -p /root/hk_bot/$dir
+            pct push 100 "$f" /root/hk_bot/$f
+          done
+
+      - name: Restart bot
+        run: pct exec 100 -- systemctl restart hk-bot
+
+      - name: Verify bot is running
+        run: |
+          sleep 3
+          pct exec 100 -- systemctl is-active hk-bot

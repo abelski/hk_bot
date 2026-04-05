@@ -18,9 +18,6 @@ cp .env.example .env
 # Run locally
 python src/bot.py
 
-# Deploy via Docker Compose
-docker-compose -f deployment/docker-compose.yml up -d
-
 # Deploy to Proxmox LXC
 ./deployment/deploy.sh
 # Then inside container:

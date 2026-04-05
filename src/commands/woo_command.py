@@ -1,14 +1,29 @@
 import time
 import requests
 from datetime import datetime, timezone
+from api.abstract_request_command import AbstractRequestCommand
+from api.abstract_cron_command import AbstractCronCommand
 
 API_URL = "https://aky7qgzp1g.execute-api.us-east-1.amazonaws.com/v2/leaderboards/"
 HEADERS = {
     "Authorization": "cbb1c29372536ad03c725af741cda7282767416ddca7aabbc50d3ed4f2c2ac81a38f26930ec7baf0a3d4c92f490da97f44107989b9e134c351c95335f139e8b0"
 }
 
-NAME = "woo"
-LABEL = "WOO Leaderboard 🏄"
+_MONTHS_RU = [
+    "", "января", "февраля", "марта", "апреля", "мая", "июня",
+    "июля", "августа", "сентября", "октября", "ноября", "декабря",
+]
+
+
+class WooCommand(AbstractRequestCommand, AbstractCronCommand):
+    NAME = "woo"
+    LABEL = "WOO Leaderboard 🏄"
+
+    async def run(self) -> str:
+        entries = _fetch_top3()
+        if entries is None:
+            return "Could not fetch leaderboard, please try again later."
+        return _format_top3(entries)
 
 
 def _today_unix():
@@ -39,12 +54,6 @@ def _fetch_top3(retries=2):
             time.sleep(1)
 
 
-_MONTHS_RU = [
-    "", "января", "февраля", "марта", "апреля", "мая", "июня",
-    "июля", "августа", "сентября", "октября", "ноября", "декабря",
-]
-
-
 def _format_top3(entries):
     now = datetime.now(timezone.utc)
     date_str = f"{now.day} {_MONTHS_RU[now.month]} {now.year}"
@@ -57,10 +66,3 @@ def _format_top3(entries):
         score = e["score"]
         lines.append(f"#{e['rank']} · {name} · {score}m")
     return "\n".join(lines)
-
-
-async def run() -> str:
-    entries = _fetch_top3()
-    if entries is None:
-        return "Could not fetch leaderboard, please try again later."
-    return _format_top3(entries)

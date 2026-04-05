@@ -27,6 +27,8 @@ BOT_BACKUP = f"{BOT_DIR}/src/bot.py.bak"
 BOT_SERVICE = "hk-bot"
 BOT_REPO_URL = os.getenv("BOT_REPO_URL", "")
 
+VERSION_FILE = f"{BOT_DIR}/deploy_version.txt"
+
 UPDATE_YES = "update_yes"
 UPDATE_NO = "update_no"
 ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
@@ -234,11 +236,22 @@ async def _rollback(query, reason: str) -> None:
         )
 
 
+async def on_startup(app) -> None:
+    if not ADMIN_ID or not os.path.exists(VERSION_FILE):
+        return
+    try:
+        version = open(VERSION_FILE).read().strip()
+        os.remove(VERSION_FILE)
+        await app.bot.send_message(chat_id=ADMIN_ID, text=f"Deployed: {version}")
+    except Exception as e:
+        logger.warning("Failed to send deploy notification: %s", e)
+
+
 def main() -> None:
     if not TELEGRAM_BOT_TOKEN:
         raise ValueError("TELEGRAM_BOT_TOKEN not set in .cred")
 
-    app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    app = Application.builder().token(TELEGRAM_BOT_TOKEN).post_init(on_startup).build()
     schedule_jobs(app)
     app.add_handler(CommandHandler("update", update_command))
     app.add_handler(CommandHandler("reload", reload_command))

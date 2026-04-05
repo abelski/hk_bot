@@ -14,7 +14,14 @@
       "Bash(scp /Users/Artur_Belski/Documents/src/hk_bot/config.json root@192.168.0.31:/tmp/)",
       "WebFetch(domain:honestkitereviews.com)",
       "Bash(curl -s https://honestkitereviews.com/)",
-      "Bash(python3 -c ':*)"
+      "Bash(python3 -c ':*)",
+      "Bash(python3 -m pytest tests/test_commands.py -v)",
+      "Bash(ssh root@192.168.0.31 \"pct exec 100 -- mkdir -p /root/hk_bot/src/api /root/hk_bot/src/helpers\")",
+      "Bash(scp /Users/Artur_Belski/Documents/src/hk_bot/src/commands/__init__.py root@192.168.0.31:/tmp/cmd_init.py)",
+      "Bash(scp /Users/Artur_Belski/Documents/src/hk_bot/src/commands/hkr_command.py root@192.168.0.31:/tmp/hkr_command.py)",
+      "Bash(scp /Users/Artur_Belski/Documents/src/hk_bot/src/commands/windguru_command.py root@192.168.0.31:/tmp/windguru_command.py)",
+      "Bash(scp /Users/Artur_Belski/Documents/src/hk_bot/src/commands/woo_command.py root@192.168.0.31:/tmp/woo_command.py)",
+      "Bash(scp /Users/Artur_Belski/Documents/src/hk_bot/src/commands/helpers/translate.py root@192.168.0.31:/tmp/translate.py)"
     ]
   }
 }
