@@ -1,4 +1,7 @@
 {
+  "windguru_spots": [
+    {"id": 137635, "name": "Lithuania - Svencele", "tz_offset": 3}
+  ],
   "recipients": {
     "main_group": "-4570601504"
   },

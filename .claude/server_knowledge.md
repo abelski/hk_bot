@@ -19,7 +19,7 @@
 - **Service**: `hk-bot` (systemd, enabled, auto-restarts)
 - **Python**: 3.10.12 at `/usr/bin/python3`
 - **Deps installed**: `python-telegram-bot[job-queue]==21.7` (includes APScheduler), `python-dotenv==1.0.1`, `requests` (pip3)
-- **Bot files**: `/root/hk_bot/src/bot.py`, `/root/hk_bot/src/config_loader.py`, `/root/hk_bot/src/commands/woo_command.py`, `/root/hk_bot/src/commands/hkr_command.py`, `/root/hk_bot/src/commands/__init__.py`, `/root/hk_bot/src/commands/helpers/__init__.py`, `/root/hk_bot/src/commands/helpers/translate.py`
+- **Bot files**: `/root/hk_bot/src/bot.py`, `/root/hk_bot/src/config_loader.py`, `/root/hk_bot/src/commands/woo_command.py`, `/root/hk_bot/src/commands/hkr_command.py`, `/root/hk_bot/src/commands/windguru_command.py`, `/root/hk_bot/src/commands/__init__.py`, `/root/hk_bot/src/commands/helpers/__init__.py`, `/root/hk_bot/src/commands/helpers/translate.py`
 - **Config file**: `/root/hk_bot/config.json` (runtime command-to-recipient mappings, edit + send `/reload` to bot)
 - **Systemd service file**: `/etc/systemd/system/hk-bot.service` — uses `EnvironmentFile=/root/hk_bot/.env`; must run `systemctl daemon-reload` after editing it
 - **SSH**: not installed (use `pct exec 100` via Proxmox host)
