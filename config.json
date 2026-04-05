@@ -1,4 +1,6 @@
 {
+  "checkwhitelist": true,
+  "whitelist_groups": ["-4570601504"],
   "windguru_spots": [
     {"id": 137635, "name": "Lithuania - Svencele", "tz_offset": 3}
   ],

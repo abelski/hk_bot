@@ -96,13 +96,36 @@ async def _send_result(bot_or_query, result, *, is_query: bool = False) -> None:
             await bot.send_message(chat_id=chat_id, text=result)
 
 
+async def _whitelist_allowed(bot, user_id, chat_id) -> bool:
+    config = load_config()
+    if not config.get("checkwhitelist", False):
+        return True
+    whitelist_groups = config.get("whitelist_groups", [])
+    # If the request comes from a whitelisted group itself, allow
+    if str(chat_id) in whitelist_groups:
+        return True
+    # Otherwise check if the user is a member of any whitelisted group
+    for group_id in whitelist_groups:
+        try:
+            member = await bot.get_chat_member(chat_id=int(group_id), user_id=user_id)
+            if member.status in ("member", "administrator", "creator", "restricted"):
+                return True
+        except Exception:
+            pass
+    return False
+
+
 async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not await _whitelist_allowed(context.bot, update.effective_user.id, update.effective_chat.id):
+        return
     await _show_commands(update.effective_message)
 
 
 async def answer_mention(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
     if not message:
+        return
+    if not await _whitelist_allowed(context.bot, update.effective_user.id, update.effective_chat.id):
         return
     bot_username = context.bot.username
     for text in message.parse_entities(["mention"]).values():
@@ -126,6 +149,8 @@ async def _show_commands(message) -> None:
 async def command_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
+    if not await _whitelist_allowed(context.bot, update.effective_user.id, update.effective_chat.id):
+        return
     cmd_name = query.data[4:]  # strip "cmd_" prefix
     commands = {cmd.NAME: cmd for cmd in load_commands()}
     cmd = commands.get(cmd_name)
