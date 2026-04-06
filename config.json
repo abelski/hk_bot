@@ -4,9 +4,6 @@
   "windguru_spots": [
     {"id": 137635, "name": "Lithuania - Svencele", "tz_offset": 3}
   ],
-  "instagram_accounts": [
-    {"username": "dontpullthebar_official", "name": "Don't Pull The Bar"}
-  ],
   "recipients": {
     "main_group": "-4570601504"
   },
@@ -18,11 +15,6 @@
     },
     {
       "command": "hkr",
-      "recipients": ["main_group"],
-      "cron": "0 * * * *"
-    },
-    {
-      "command": "instagram",
       "recipients": ["main_group"],
       "cron": "0 * * * *"
     },

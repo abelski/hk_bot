@@ -9,6 +9,7 @@ from api.abstract_request_command import AbstractRequestCommand
 from api.abstract_news_command import AbstractNewsCommand
 from helpers.rewrite_helper import rewrite_to_russian
 from helpers.translation_helper import translate_to_russian
+from helpers.youtube_helper import download_youtube_video
 
 _RSS_URL = "https://www.iksurfmag.com/kitesurfing-news/feed/"
 _STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../iksurfmag_state.json")
@@ -174,10 +175,14 @@ def _format(data: dict) -> dict:
         excerpt = data["text"][:500] if data["text"] else ""
         rewritten = translate_to_russian(excerpt) if excerpt else data["title"]
     text = f"*{data['title']}*\n\n{rewritten}"
-    if data.get("video_url"):
-        text += f"\n\n{data['video_url']}"
     result = {"text": text}
-    if data.get("image"):
+    if data.get("video_url"):
+        video_bytes = download_youtube_video(data["video_url"])
+        if video_bytes:
+            result["video"] = video_bytes
+        else:
+            result["text"] += f"\n\n{data['video_url']}"
+    elif data.get("image"):
         result["photos"] = [data["image"]]
     return result
 
