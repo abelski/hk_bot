@@ -62,11 +62,10 @@ def _fetch_latest(retries: int = 2) -> dict | None:
 def _fetch_article_data(url: str) -> dict:
     """Fetch the article page; extract body text and YouTube video URL.
 
-    iksurfmag injects a raw <!DOCTYPE html> block inside .single-post.
-    BeautifulSoup surfaces this as a nested <body> element.
-    Article text lives in classless <p> tags inside that body, after
-    the subscribe-promo <section> tags which are stripped first.
-    The YouTube embed uses data-src (lazy-loaded), not src.
+    Strips noise elements (.row contains related articles, section contains
+    subscribe promo, .share-floater contains like count) from .single-post,
+    then collects the remaining classless <p> tags as article text.
+    YouTube embeds are lazy-loaded via data-src, not src.
     """
     result = {"text": "", "video_url": None}
     try:
@@ -74,22 +73,23 @@ def _fetch_article_data(url: str) -> dict:
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
 
-        # Text: classless <p> tags inside the injected <body> within .single-post
-        body = soup.select_one(".single-post body")
-        if body:
-            for tag in body.select("section"):
-                tag.decompose()
-            paras = [
-                p.get_text(strip=True)
-                for p in body.find_all("p")
-                if p.get_text(strip=True) and not p.get("class")
-            ]
-            result["text"] = "\n\n".join(paras)
-
         # Video: lazy-loaded YouTube iframe uses data-src, not src
         iframe = soup.find("iframe", attrs={"data-src": lambda s: s and "youtube" in s})
         if iframe:
             result["video_url"] = _youtube_watch_url(iframe.get("data-src", ""))
+
+        # Text: strip noise from .single-post, collect classless <p> tags
+        post = soup.select_one(".single-post")
+        if post:
+            for sel in [".share-floater", "section", ".row", ".solo-bleed", ".sharedaddy", "script", "style"]:
+                for tag in post.select(sel):
+                    tag.decompose()
+            paras = [
+                p.get_text(strip=True)
+                for p in post.find_all("p")
+                if p.get_text(strip=True) and not p.get("class")
+            ]
+            result["text"] = "\n\n".join(paras)
     except Exception:
         pass
     return result
