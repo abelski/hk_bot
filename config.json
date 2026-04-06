@@ -1,5 +1,5 @@
 {
-  "post_footer": "hetekite | t.me/hatekite",
+  "post_footer": "[HateKite](https://t.me/hatekite)",
   "dm_commands": ["woo", "hkr", "iksurfmag"],
   "checkwhitelist": true,
   "whitelist_groups": ["-4570601504"],
