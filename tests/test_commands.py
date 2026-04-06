@@ -360,6 +360,39 @@ class TestIksurfmagCommand:
             result = _format(data)
         assert "переведено" in result["text"]
 
+    def test_format_includes_video_url_in_text(self):
+        from commands.iksurfmag_command import _format
+        data = {"url": "https://iksurfmag.com/news/1", "title": "Title", "text": "Body",
+                "image": None, "video_url": "https://www.youtube.com/watch?v=abc123"}
+        with patch("commands.iksurfmag_command.rewrite_to_russian", return_value="текст"):
+            result = _format(data)
+        assert "https://www.youtube.com/watch?v=abc123" in result["text"]
+        assert "photos" not in result
+
+    def test_youtube_watch_url_converts_embed(self):
+        from commands.iksurfmag_command import _youtube_watch_url
+        result = _youtube_watch_url("https://www.youtube.com/embed/dQw4w9WgXcQ")
+        assert result == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
+    def test_youtube_watch_url_returns_none_for_non_embed(self):
+        from commands.iksurfmag_command import _youtube_watch_url
+        assert _youtube_watch_url("https://example.com/video.mp4") is None
+
+    def test_fetch_article_text_extracts_entry_content(self):
+        from commands.iksurfmag_command import _fetch_article_text
+        html = '<html><body><div class="entry-content"><p>Article body.</p><p>More text.</p></div></body></html>'
+        mock_resp = type("R", (), {"text": html, "raise_for_status": lambda _: None})()
+        with patch("commands.iksurfmag_command.requests.get", return_value=mock_resp):
+            result = _fetch_article_text("https://iksurfmag.com/news/1")
+        assert "Article body" in result
+        assert "More text" in result
+
+    def test_fetch_article_text_returns_empty_on_failure(self):
+        from commands.iksurfmag_command import _fetch_article_text
+        with patch("commands.iksurfmag_command.requests.get", side_effect=Exception("err")):
+            result = _fetch_article_text("https://iksurfmag.com/news/1")
+        assert result == ""
+
 
 class TestRewriteHelper:
     def test_returns_rewritten_text(self):

@@ -30,7 +30,8 @@
       "Bash(ssh root@192.168.0.31 \"pct exec 100 -- journalctl -u hk-bot -n 100 --no-pager\")",
       "Bash(curl -s \"https://rss.app/feeds/4eNjXOte8QeqwHg7.xml\")",
       "Bash(ssh root@192.168.0.31 \"pct exec 100 -- journalctl -u hk-bot -n 10 --no-pager\")",
-      "Bash(ssh root@192.168.0.31 'pct exec 100 -- python3 -c \":*)"
+      "Bash(ssh root@192.168.0.31 'pct exec 100 -- python3 -c \":*)",
+      "Bash(python3 -m pytest tests/test_commands.py::TestIksurfmagCommand -v)"
     ]
   }
 }

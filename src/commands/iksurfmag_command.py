@@ -1,5 +1,6 @@
 import os
 import json
+import re
 import time
 import requests
 import xml.etree.ElementTree as ET
@@ -58,6 +59,31 @@ def _fetch_latest(retries: int = 2) -> dict | None:
             time.sleep(1)
 
 
+_ARTICLE_SELECTORS = [
+    ".entry-content",
+    ".post-content",
+    ".article-content",
+    "article .content",
+]
+
+
+def _fetch_article_text(url: str) -> str:
+    """Fetch the article page and extract its main body text. Returns '' on failure."""
+    try:
+        r = requests.get(url, headers=_HEADERS, timeout=15)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+        for selector in _ARTICLE_SELECTORS:
+            el = soup.select_one(selector)
+            if el:
+                for tag in el.select("script, style, .sharedaddy, .related-posts, .post-navigation"):
+                    tag.decompose()
+                return el.get_text(separator="\n", strip=True)
+    except Exception:
+        pass
+    return ""
+
+
 def _parse_item(item) -> dict:
     title = (item.findtext("title") or "").strip()
     url = (item.findtext("link") or "").strip()
@@ -70,22 +96,36 @@ def _parse_item(item) -> dict:
     else:
         full_html = item.findtext("description") or ""
 
-    # Extract plain text
-    text = ""
+    # Extract plain text from the article page; fall back to RSS content
+    text = _fetch_article_text(url)
+
+    # Parse RSS HTML for media detection only
+    soup = None
     if full_html:
         soup = BeautifulSoup(full_html, "html.parser")
+    if not text and soup:
         text = soup.get_text(separator="\n", strip=True)
 
-    # Image: media:content or first <img> in content HTML
-    image_url = None
     media_el = item.find("media:content", _NS)
-    if media_el is not None:
-        image_url = media_el.get("url")
-    if not image_url and full_html:
-        soup = BeautifulSoup(full_html, "html.parser")
-        img = soup.find("img")
-        if img:
-            image_url = img.get("src") or img.get("data-src")
+
+    # Video: media:content with medium="video", or YouTube iframe in HTML
+    video_url = None
+    if media_el is not None and media_el.get("medium") == "video":
+        video_url = media_el.get("url")
+    if not video_url and soup:
+        iframe = soup.find("iframe", src=lambda s: s and "youtube" in s)
+        if iframe:
+            video_url = _youtube_watch_url(iframe.get("src", ""))
+
+    # Image: only when no video present
+    image_url = None
+    if not video_url:
+        if media_el is not None:
+            image_url = media_el.get("url")
+        if not image_url and soup:
+            img = soup.find("img")
+            if img:
+                image_url = img.get("src") or img.get("data-src")
 
     # Download image bytes
     image = None
@@ -97,7 +137,15 @@ def _parse_item(item) -> dict:
         except Exception:
             pass
 
-    return {"url": url, "title": title, "text": text, "image": image}
+    return {"url": url, "title": title, "text": text, "image": image, "video_url": video_url}
+
+
+def _youtube_watch_url(embed_src: str) -> str | None:
+    """Convert a YouTube embed URL to a watch URL. Returns None if not a YouTube embed."""
+    m = re.search(r"/embed/([a-zA-Z0-9_-]+)", embed_src)
+    if m:
+        return f"https://www.youtube.com/watch?v={m.group(1)}"
+    return None
 
 
 def _format(data: dict) -> dict:
@@ -105,7 +153,10 @@ def _format(data: dict) -> dict:
     if rewritten is None:
         excerpt = data["text"][:500] if data["text"] else ""
         rewritten = translate_to_russian(excerpt) if excerpt else data["title"]
-    text = f"*{data['title']}*\n\n{rewritten}\n\n[Читать далее]({data['url']})"
+    text = f"*{data['title']}*\n\n{rewritten}"
+    if data.get("video_url"):
+        text += f"\n\n{data['video_url']}"
+    text += f"\n\n[Читать далее]({data['url']})"
     result = {"text": text}
     if data.get("image"):
         result["photos"] = [data["image"]]
