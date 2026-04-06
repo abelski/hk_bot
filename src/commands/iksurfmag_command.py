@@ -59,73 +59,83 @@ def _fetch_latest(retries: int = 2) -> dict | None:
             time.sleep(1)
 
 
-_ARTICLE_SELECTORS = [
-    ".entry-content",
-    ".post-content",
-    ".article-content",
-    "article .content",
-]
+def _fetch_article_data(url: str) -> dict:
+    """Fetch the article page; extract body text and YouTube video URL.
 
-
-def _fetch_article_text(url: str) -> str:
-    """Fetch the article page and extract its main body text. Returns '' on failure."""
+    iksurfmag injects a raw <!DOCTYPE html> block inside .single-post.
+    BeautifulSoup surfaces this as a nested <body> element.
+    Article text lives in classless <p> tags inside that body, after
+    the subscribe-promo <section> tags which are stripped first.
+    The YouTube embed uses data-src (lazy-loaded), not src.
+    """
+    result = {"text": "", "video_url": None}
     try:
         r = requests.get(url, headers=_HEADERS, timeout=15)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
-        for selector in _ARTICLE_SELECTORS:
-            el = soup.select_one(selector)
-            if el:
-                for tag in el.select("script, style, .sharedaddy, .related-posts, .post-navigation"):
-                    tag.decompose()
-                return el.get_text(separator="\n", strip=True)
+
+        # Text: classless <p> tags inside the injected <body> within .single-post
+        body = soup.select_one(".single-post body")
+        if body:
+            for tag in body.select("section"):
+                tag.decompose()
+            paras = [
+                p.get_text(strip=True)
+                for p in body.find_all("p")
+                if p.get_text(strip=True) and not p.get("class")
+            ]
+            result["text"] = "\n\n".join(paras)
+
+        # Video: lazy-loaded YouTube iframe uses data-src, not src
+        iframe = soup.find("iframe", attrs={"data-src": lambda s: s and "youtube" in s})
+        if iframe:
+            result["video_url"] = _youtube_watch_url(iframe.get("data-src", ""))
     except Exception:
         pass
-    return ""
+    return result
 
 
 def _parse_item(item) -> dict:
     title = (item.findtext("title") or "").strip()
     url = (item.findtext("link") or "").strip()
 
-    # Full article HTML from content:encoded, fall back to description
-    full_html = ""
-    content_el = item.find("content:encoded", _NS)
-    if content_el is not None and content_el.text:
-        full_html = content_el.text
-    else:
-        full_html = item.findtext("description") or ""
-
-    # Extract plain text from the article page; fall back to RSS content
-    text = _fetch_article_text(url)
-
-    # Parse RSS HTML for media detection only
-    soup = None
-    if full_html:
-        soup = BeautifulSoup(full_html, "html.parser")
-    if not text and soup:
-        text = soup.get_text(separator="\n", strip=True)
+    # Fetch text and video URL from the actual article page
+    article_data = _fetch_article_data(url)
+    text = article_data["text"]
+    video_url = article_data["video_url"]
 
     media_el = item.find("media:content", _NS)
 
-    # Video: media:content with medium="video", or YouTube iframe in HTML
-    video_url = None
-    if media_el is not None and media_el.get("medium") == "video":
-        video_url = media_el.get("url")
-    if not video_url and soup:
-        iframe = soup.find("iframe", src=lambda s: s and "youtube" in s)
-        if iframe:
-            video_url = _youtube_watch_url(iframe.get("src", ""))
-
-    # Image: only when no video present
-    image_url = None
+    # Fallback video from RSS if page fetch failed
     if not video_url:
-        if media_el is not None:
-            image_url = media_el.get("url")
-        if not image_url and soup:
-            img = soup.find("img")
-            if img:
-                image_url = img.get("src") or img.get("data-src")
+        if media_el is not None and media_el.get("medium") == "video":
+            video_url = media_el.get("url")
+        if not video_url:
+            full_html = ""
+            content_el = item.find("content:encoded", _NS)
+            if content_el is not None and content_el.text:
+                full_html = content_el.text
+            if full_html:
+                rss_soup = BeautifulSoup(full_html, "html.parser")
+                iframe = rss_soup.find("iframe", src=lambda s: s and "youtube" in s)
+                if iframe:
+                    video_url = _youtube_watch_url(iframe.get("src", ""))
+
+    # Fallback text from RSS content:encoded if page fetch returned nothing
+    if not text:
+        full_html = ""
+        content_el = item.find("content:encoded", _NS)
+        if content_el is not None and content_el.text:
+            full_html = content_el.text
+        else:
+            full_html = item.findtext("description") or ""
+        if full_html:
+            text = BeautifulSoup(full_html, "html.parser").get_text(separator="\n", strip=True)
+
+    # Image: only when no video
+    image_url = None
+    if not video_url and media_el is not None and media_el.get("medium") != "video":
+        image_url = media_el.get("url")
 
     # Download image bytes
     image = None

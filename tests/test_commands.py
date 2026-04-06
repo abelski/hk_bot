@@ -378,20 +378,32 @@ class TestIksurfmagCommand:
         from commands.iksurfmag_command import _youtube_watch_url
         assert _youtube_watch_url("https://example.com/video.mp4") is None
 
-    def test_fetch_article_text_extracts_entry_content(self):
-        from commands.iksurfmag_command import _fetch_article_text
-        html = '<html><body><div class="entry-content"><p>Article body.</p><p>More text.</p></div></body></html>'
+    def test_fetch_article_data_extracts_text_and_video(self):
+        from commands.iksurfmag_command import _fetch_article_data
+        # Simulate iksurfmag structure: injected <body> inside .single-post,
+        # classless <p> for article text, lazy-loaded YouTube iframe via data-src
+        html = """
+        <html><body>
+          <div class="single-post">
+            <!DOCTYPE html><html><body>
+              <section class="promo"><p class="text-muted">Subscribe!</p></section>
+              <p></p>
+              <p>The winner of Lords Of Tram 2026 and this just shows why…</p>
+              <iframe class="lazyload" data-src="https://www.youtube.com/embed/FGQpFpAYeik?rel=0"></iframe>
+            </body></html>
+          </div>
+        </body></html>"""
         mock_resp = type("R", (), {"text": html, "raise_for_status": lambda _: None})()
         with patch("commands.iksurfmag_command.requests.get", return_value=mock_resp):
-            result = _fetch_article_text("https://iksurfmag.com/news/1")
-        assert "Article body" in result
-        assert "More text" in result
+            result = _fetch_article_data("https://iksurfmag.com/news/1")
+        assert "Lords Of Tram" in result["text"]
+        assert result["video_url"] == "https://www.youtube.com/watch?v=FGQpFpAYeik"
 
-    def test_fetch_article_text_returns_empty_on_failure(self):
-        from commands.iksurfmag_command import _fetch_article_text
+    def test_fetch_article_data_returns_empty_on_failure(self):
+        from commands.iksurfmag_command import _fetch_article_data
         with patch("commands.iksurfmag_command.requests.get", side_effect=Exception("err")):
-            result = _fetch_article_text("https://iksurfmag.com/news/1")
-        assert result == ""
+            result = _fetch_article_data("https://iksurfmag.com/news/1")
+        assert result == {"text": "", "video_url": None}
 
 
 class TestRewriteHelper:
