@@ -202,7 +202,7 @@ class TestInstagramCommand:
     @pytest.mark.asyncio
     async def test_returns_formatted_result(self):
         from commands.instagram_command import InstagramCommand
-        post = {"shortcode": "abc123", "caption": "Hello", "image": b"img", "url": "https://www.instagram.com/p/abc123/"}
+        post = {"shortcode": "abc123", "caption": "Hello", "is_video": False, "image": b"img", "url": "https://www.instagram.com/p/abc123/"}
         accounts = [{"username": "testuser", "name": "Test"}]
         with patch("commands.instagram_command._load_accounts", return_value=accounts), \
              patch("commands.instagram_command._fetch", return_value=post), \
@@ -230,7 +230,7 @@ class TestInstagramCommand:
     @pytest.mark.asyncio
     async def test_run_if_new_returns_none_when_same(self):
         from commands.instagram_command import InstagramCommand
-        post = {"shortcode": "abc123", "caption": "Hello", "image": b"img", "url": "https://www.instagram.com/p/abc123/"}
+        post = {"shortcode": "abc123", "caption": "Hello", "is_video": False, "image": b"img", "url": "https://www.instagram.com/p/abc123/"}
         accounts = [{"username": "testuser", "name": "Test"}]
         with patch("commands.instagram_command._load_accounts", return_value=accounts), \
              patch("commands.instagram_command._fetch", return_value=post), \
@@ -241,7 +241,7 @@ class TestInstagramCommand:
     @pytest.mark.asyncio
     async def test_run_if_new_returns_result_when_new(self):
         from commands.instagram_command import InstagramCommand
-        post = {"shortcode": "new999", "caption": "New post", "image": b"img", "url": "https://www.instagram.com/p/new999/"}
+        post = {"shortcode": "new999", "caption": "New post", "is_video": False, "image": b"img", "url": "https://www.instagram.com/p/new999/"}
         accounts = [{"username": "testuser", "name": "Test"}]
         with patch("commands.instagram_command._load_accounts", return_value=accounts), \
              patch("commands.instagram_command._fetch", return_value=post), \
@@ -264,18 +264,24 @@ class TestInstagramCommand:
 
     def test_format_returns_photos_for_image_post(self):
         from commands.instagram_command import _format
-        post = {"is_video": False, "media": b"img", "caption": "hello", "url": "https://www.instagram.com/p/abc/"}
+        post = {"is_video": False, "image": b"img", "caption": "hello", "url": "https://www.instagram.com/p/abc/"}
         with patch("commands.instagram_command.translate_to_russian", return_value="привет"):
             result = _format(post, {"username": "user", "name": "User"})
-        assert "photos" in result
-        assert result["photos"] == [b"img"]
+        assert result.get("photos") == [b"img"]
         assert "video" not in result
 
     def test_format_returns_video_for_video_post(self):
         from commands.instagram_command import _format
-        post = {"is_video": True, "media": b"vid", "caption": "hello", "url": "https://www.instagram.com/p/abc/"}
+        post = {"is_video": True, "image": b"vid", "caption": "hello", "url": "https://www.instagram.com/p/abc/"}
         with patch("commands.instagram_command.translate_to_russian", return_value="привет"):
             result = _format(post, {"username": "user", "name": "User"})
-        assert "video" in result
-        assert result["video"] == b"vid"
+        assert result.get("video") == b"vid"
         assert "photos" not in result
+
+    def test_format_returns_text_only_when_no_image(self):
+        from commands.instagram_command import _format
+        post = {"is_video": False, "image": None, "caption": "hello", "url": "https://www.instagram.com/p/abc/"}
+        with patch("commands.instagram_command.translate_to_russian", return_value="привет"):
+            result = _format(post, {"username": "user", "name": "User"})
+        assert "photos" not in result
+        assert "text" in result

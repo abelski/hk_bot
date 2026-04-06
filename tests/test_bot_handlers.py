@@ -19,13 +19,15 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _make_update(text="hello", chat_type="private", entities=None):
+def _make_update(text="hello", chat_type="private", entities=None, user_id=1, chat_id=1):
     """Build a minimal mock Update with an effective_message."""
     message = MagicMock()
     message.reply_text = AsyncMock()
     message.parse_entities = MagicMock(return_value=entities or {})
     update = MagicMock()
     update.effective_message = message
+    update.effective_user.id = user_id
+    update.effective_chat.id = chat_id
     return update
 
 
@@ -53,7 +55,8 @@ class TestAnswer:
         update = _make_update()
         ctx = _make_context()
         mock_cmd = _make_mock_cmd()
-        with patch("bot.load_commands", return_value=[mock_cmd]):
+        with patch("bot.load_commands", return_value=[mock_cmd]), \
+             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer(update, ctx)
         update.effective_message.reply_text.assert_awaited_once()
         args, kwargs = update.effective_message.reply_text.call_args
@@ -65,7 +68,8 @@ class TestAnswer:
         from bot import answer
         update = _make_update()
         ctx = _make_context()
-        with patch("bot.load_commands", return_value=[]):
+        with patch("bot.load_commands", return_value=[]), \
+             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer(update, ctx)
         update.effective_message.reply_text.assert_awaited_once()
 
@@ -82,7 +86,8 @@ class TestAnswerMention:
         update = _make_update(entities={entity: "@testbot"})
         ctx = _make_context(bot_username="testbot")
         mock_cmd = _make_mock_cmd()
-        with patch("bot.load_commands", return_value=[mock_cmd]):
+        with patch("bot.load_commands", return_value=[mock_cmd]), \
+             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer_mention(update, ctx)
         update.effective_message.reply_text.assert_awaited_once()
         args, _ = update.effective_message.reply_text.call_args
@@ -94,7 +99,8 @@ class TestAnswerMention:
         entity = MagicMock()
         update = _make_update(entities={entity: "@otherusername"})
         ctx = _make_context(bot_username="testbot")
-        with patch("bot.load_commands") as mock_load:
+        with patch("bot.load_commands") as mock_load, \
+             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer_mention(update, ctx)
         mock_load.assert_not_called()
         update.effective_message.reply_text.assert_not_awaited()
@@ -106,7 +112,8 @@ class TestAnswerMention:
         update = _make_update(entities={entity: "@TestBot"})
         ctx = _make_context(bot_username="testbot")
         mock_cmd = _make_mock_cmd()
-        with patch("bot.load_commands", return_value=[mock_cmd]):
+        with patch("bot.load_commands", return_value=[mock_cmd]), \
+             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer_mention(update, ctx)
         update.effective_message.reply_text.assert_awaited_once()
 
@@ -117,7 +124,8 @@ class TestAnswerMention:
         update = _make_update(entities={e1: "@testbot", e2: "@testbot"})
         ctx = _make_context(bot_username="testbot")
         mock_cmd = _make_mock_cmd()
-        with patch("bot.load_commands", return_value=[mock_cmd]):
+        with patch("bot.load_commands", return_value=[mock_cmd]), \
+             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer_mention(update, ctx)
         assert update.effective_message.reply_text.await_count == 1
 
