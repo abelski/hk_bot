@@ -105,23 +105,20 @@ def _parse_item(item) -> dict:
     video_url = article_data["video_url"]
 
     media_el = item.find("media:content", _NS)
+    media_url = media_el.get("url", "") if media_el is not None else ""
 
-    # Fallback video from RSS if page fetch failed
+    # Fallback video from RSS if page fetch failed.
+    # iksurfmag sets medium="image" on YouTube thumbnails (ytimg.com) — detect those too.
     if not video_url:
         if media_el is not None and media_el.get("medium") == "video":
-            video_url = media_el.get("url")
-        if not video_url:
-            full_html = ""
-            content_el = item.find("content:encoded", _NS)
-            if content_el is not None and content_el.text:
-                full_html = content_el.text
-            if full_html:
-                rss_soup = BeautifulSoup(full_html, "html.parser")
-                iframe = rss_soup.find("iframe", src=lambda s: s and "youtube" in s)
-                if iframe:
-                    video_url = _youtube_watch_url(iframe.get("src", ""))
+            video_url = media_url
+        if not video_url and "ytimg.com/vi/" in media_url:
+            m = re.search(r"/vi/([a-zA-Z0-9_-]+)/", media_url)
+            if m:
+                video_url = f"https://www.youtube.com/watch?v={m.group(1)}"
 
-    # Fallback text from RSS content:encoded if page fetch returned nothing
+    # Fallback text from RSS content:encoded if page fetch returned nothing.
+    # Strip iksurfmag boilerplate ("first appeared on", "Read the full article here").
     if not text:
         full_html = ""
         content_el = item.find("content:encoded", _NS)
@@ -130,12 +127,25 @@ def _parse_item(item) -> dict:
         else:
             full_html = item.findtext("description") or ""
         if full_html:
-            text = BeautifulSoup(full_html, "html.parser").get_text(separator="\n", strip=True)
+            rss_soup = BeautifulSoup(full_html, "html.parser")
+            paras = [
+                p.get_text(strip=True)
+                for p in rss_soup.find_all("p")
+                if p.get_text(strip=True)
+                and "first appeared" not in p.get_text()
+                and "full article" not in p.get_text().lower()
+            ]
+            text = "\n\n".join(paras)
 
-    # Image: only when no video
+    # Image: only when no video, and not a YouTube thumbnail
     image_url = None
-    if not video_url and media_el is not None and media_el.get("medium") != "video":
-        image_url = media_el.get("url")
+    if (
+        not video_url
+        and media_el is not None
+        and media_el.get("medium") != "video"
+        and "ytimg.com" not in media_url
+    ):
+        image_url = media_url or None
 
     # Download image bytes
     image = None
@@ -166,7 +176,6 @@ def _format(data: dict) -> dict:
     text = f"*{data['title']}*\n\n{rewritten}"
     if data.get("video_url"):
         text += f"\n\n{data['video_url']}"
-    text += f"\n\n[Читать далее]({data['url']})"
     result = {"text": text}
     if data.get("image"):
         result["photos"] = [data["image"]]

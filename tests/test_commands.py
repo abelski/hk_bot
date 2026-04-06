@@ -405,6 +405,44 @@ class TestIksurfmagCommand:
             result = _fetch_article_data("https://iksurfmag.com/news/1")
         assert result == {"text": "", "video_url": None}
 
+    def test_youtube_detected_from_ytimg_thumbnail_in_media(self):
+        """When article page fetch fails, video should be detected from ytimg.com thumbnail URL."""
+        import xml.etree.ElementTree as ET
+        from commands.iksurfmag_command import _parse_item
+        rss_xml = """<item>
+            <title>Test</title>
+            <link>https://iksurfmag.com/news/1</link>
+            <ns0:content xmlns:ns0="http://search.yahoo.com/mrss/"
+                url="https://i.ytimg.com/vi/FGQpFpAYeik/maxresdefault.jpg" medium="image"/>
+        </item>"""
+        item = ET.fromstring(rss_xml)
+        with patch("commands.iksurfmag_command._fetch_article_data",
+                   return_value={"text": "", "video_url": None}):
+            result = _parse_item(item)
+        assert result["video_url"] == "https://www.youtube.com/watch?v=FGQpFpAYeik"
+        assert result["image"] is None
+
+    def test_rss_fallback_strips_iksurfmag_boilerplate(self):
+        """RSS text fallback should exclude 'first appeared on' and 'Read the full article' lines."""
+        import xml.etree.ElementTree as ET
+        from commands.iksurfmag_command import _parse_item
+        rss_xml = """<item>
+            <title>Test</title>
+            <link>https://iksurfmag.com/news/1</link>
+            <content:encoded xmlns:content="http://purl.org/rss/1.0/modules/content/"><![CDATA[
+                <p>Great article text.</p>
+                <p>The post Test first appeared on IKSURFMAG.</p>
+                <p>Read the full article here: Test</p>
+            ]]></content:encoded>
+        </item>"""
+        item = ET.fromstring(rss_xml)
+        with patch("commands.iksurfmag_command._fetch_article_data",
+                   return_value={"text": "", "video_url": None}):
+            result = _parse_item(item)
+        assert "Great article text" in result["text"]
+        assert "IKSURFMAG" not in result["text"]
+        assert "full article" not in result["text"].lower()
+
 
 class TestRewriteHelper:
     def test_returns_rewritten_text(self):
