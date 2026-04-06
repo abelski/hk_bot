@@ -1,4 +1,6 @@
 {
+  "post_footer": "hetekite | t.me/hatekite",
+  "dm_commands": ["woo", "hkr", "iksurfmag"],
   "checkwhitelist": true,
   "whitelist_groups": ["-4570601504"],
   "windguru_spots": [

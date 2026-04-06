@@ -233,3 +233,75 @@ class TestScheduleJobs:
              patch("bot.load_commands", return_value=[]):
             bot.schedule_jobs(mock_app)
         existing_job.schedule_removal.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Tests for _append_footer()
+# ---------------------------------------------------------------------------
+
+class TestDmCommands:
+    @pytest.mark.asyncio
+    async def test_dm_shows_only_configured_commands(self):
+        from bot import answer
+        update = _make_update()
+        ctx = _make_context()
+        cmd_woo = _make_mock_cmd(name="woo", label="WOO")
+        cmd_hkr = _make_mock_cmd(name="hkr", label="HKR")
+        config = {"dm_commands": ["woo"]}
+        with patch("bot.load_commands", return_value=[cmd_woo, cmd_hkr]), \
+             patch("bot.load_config", return_value=config), \
+             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
+            await answer(update, ctx)
+        _, kwargs = update.effective_message.reply_text.call_args
+        labels = [btn[0].text for btn in kwargs["reply_markup"].inline_keyboard]
+        assert labels == ["WOO"]
+
+    @pytest.mark.asyncio
+    async def test_dm_shows_all_when_dm_commands_absent(self):
+        from bot import answer
+        update = _make_update()
+        ctx = _make_context()
+        cmd_woo = _make_mock_cmd(name="woo", label="WOO")
+        cmd_hkr = _make_mock_cmd(name="hkr", label="HKR")
+        with patch("bot.load_commands", return_value=[cmd_woo, cmd_hkr]), \
+             patch("bot.load_config", return_value={}), \
+             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
+            await answer(update, ctx)
+        _, kwargs = update.effective_message.reply_text.call_args
+        labels = [btn[0].text for btn in kwargs["reply_markup"].inline_keyboard]
+        assert labels == ["WOO", "HKR"]
+
+    @pytest.mark.asyncio
+    async def test_group_mention_still_shows_all_commands(self):
+        from bot import answer_mention
+        entity = MagicMock()
+        update = _make_update(entities={entity: "@testbot"})
+        ctx = _make_context(bot_username="testbot")
+        cmd_woo = _make_mock_cmd(name="woo", label="WOO")
+        cmd_hkr = _make_mock_cmd(name="hkr", label="HKR")
+        with patch("bot.load_commands", return_value=[cmd_woo, cmd_hkr]), \
+             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
+            await answer_mention(update, ctx)
+        _, kwargs = update.effective_message.reply_text.call_args
+        labels = [btn[0].text for btn in kwargs["reply_markup"].inline_keyboard]
+        assert labels == ["WOO", "HKR"]
+
+
+class TestAppendFooter:
+    def test_appends_footer_when_configured(self):
+        import bot
+        with patch("bot.load_config", return_value={"post_footer": "hetekite | t.me/hatekite"}):
+            result = bot._append_footer("Some post text")
+        assert result == "Some post text\n\nhetekite | t.me/hatekite"
+
+    def test_no_footer_when_empty_string(self):
+        import bot
+        with patch("bot.load_config", return_value={"post_footer": ""}):
+            result = bot._append_footer("Some post text")
+        assert result == "Some post text"
+
+    def test_no_footer_when_key_missing(self):
+        import bot
+        with patch("bot.load_config", return_value={}):
+            result = bot._append_footer("Some post text")
+        assert result == "Some post text"

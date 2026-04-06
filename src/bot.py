@@ -51,10 +51,17 @@ def _build_media(photos: list, caption: str) -> list:
     return media
 
 
+def _append_footer(text: str) -> str:
+    footer = load_config().get("post_footer", "")
+    if footer:
+        return f"{text}\n\n{footer}"
+    return text
+
+
 async def _send_result(bot_or_query, result, *, is_query: bool = False) -> None:
     if isinstance(result, dict):
         from io import BytesIO
-        text = result.get("text", "")
+        text = _append_footer(result.get("text", ""))
         photos = result.get("photos", [])
         video = result.get("video")
         if photos:
@@ -89,6 +96,7 @@ async def _send_result(bot_or_query, result, *, is_query: bool = False) -> None:
                 bot, chat_id = bot_or_query
                 await bot.send_message(chat_id=chat_id, text=text, parse_mode="Markdown")
     else:
+        result = _append_footer(result)
         if is_query:
             await bot_or_query.edit_message_text(result)
         else:
@@ -118,7 +126,8 @@ async def _whitelist_allowed(bot, user_id, chat_id) -> bool:
 async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not await _whitelist_allowed(context.bot, update.effective_user.id, update.effective_chat.id):
         return
-    await _show_commands(update.effective_message)
+    dm_commands = load_config().get("dm_commands")
+    await _show_commands(update.effective_message, allowed=dm_commands)
 
 
 async def answer_mention(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -134,8 +143,10 @@ async def answer_mention(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             return
 
 
-async def _show_commands(message) -> None:
+async def _show_commands(message, allowed: list | None = None) -> None:
     commands = load_commands()
+    if allowed is not None:
+        commands = [cmd for cmd in commands if cmd.NAME in allowed]
     buttons = [
         [InlineKeyboardButton(cmd.LABEL, callback_data=f"cmd_{cmd.NAME}")]
         for cmd in commands
