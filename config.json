@@ -14,7 +14,7 @@
     {
       "command": "woo",
       "recipients": ["main_group"],
-      "cron": "0 23 * * *"
+      "cron": "0 20 * * *"
     },
     {
       "command": "hkr",
@@ -23,6 +23,11 @@
     },
     {
       "command": "instagram",
+      "recipients": ["main_group"],
+      "cron": "0 * * * *"
+    },
+    {
+      "command": "iksurfmag",
       "recipients": ["main_group"],
       "cron": "0 * * * *"
     }

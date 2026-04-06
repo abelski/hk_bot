@@ -285,3 +285,104 @@ class TestInstagramCommand:
             result = _format(post, {"username": "user", "name": "User"})
         assert "photos" not in result
         assert "text" in result
+
+
+class TestIksurfmagCommand:
+    @pytest.mark.asyncio
+    async def test_returns_formatted_result(self):
+        from commands.iksurfmag_command import IksurfmagCommand
+        data = {"url": "https://iksurfmag.com/news/1", "title": "Test", "text": "Body", "image": b"img"}
+        with patch("commands.iksurfmag_command._fetch_latest", return_value=data), \
+             patch("commands.iksurfmag_command._save_state"), \
+             patch("commands.iksurfmag_command._format", return_value={"text": "formatted", "photos": [b"img"]}):
+            result = await IksurfmagCommand().run()
+        assert result == {"text": "formatted", "photos": [b"img"]}
+
+    @pytest.mark.asyncio
+    async def test_returns_error_when_fetch_fails(self):
+        from commands.iksurfmag_command import IksurfmagCommand
+        with patch("commands.iksurfmag_command._fetch_latest", return_value=None):
+            result = await IksurfmagCommand().run()
+        assert "Could not fetch" in result
+
+    @pytest.mark.asyncio
+    async def test_run_if_new_returns_none_when_same(self):
+        from commands.iksurfmag_command import IksurfmagCommand
+        data = {"url": "https://iksurfmag.com/news/1", "title": "T", "text": "B", "image": None}
+        with patch("commands.iksurfmag_command._fetch_latest", return_value=data), \
+             patch("commands.iksurfmag_command._load_state", return_value="https://iksurfmag.com/news/1"):
+            result = await IksurfmagCommand().run_if_new()
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_run_if_new_returns_result_when_new(self):
+        from commands.iksurfmag_command import IksurfmagCommand
+        data = {"url": "https://iksurfmag.com/news/2", "title": "T", "text": "B", "image": None}
+        with patch("commands.iksurfmag_command._fetch_latest", return_value=data), \
+             patch("commands.iksurfmag_command._load_state", return_value="https://iksurfmag.com/news/1"), \
+             patch("commands.iksurfmag_command._save_state"), \
+             patch("commands.iksurfmag_command._format", return_value={"text": "new article"}):
+            result = await IksurfmagCommand().run_if_new()
+        assert result == {"text": "new article"}
+
+    def test_has_required_interface(self):
+        from commands.iksurfmag_command import IksurfmagCommand
+        from api.abstract_request_command import AbstractRequestCommand
+        from api.abstract_news_command import AbstractNewsCommand
+        assert issubclass(IksurfmagCommand, AbstractRequestCommand)
+        assert issubclass(IksurfmagCommand, AbstractNewsCommand)
+        assert isinstance(IksurfmagCommand.NAME, str)
+        assert isinstance(IksurfmagCommand.LABEL, str)
+        assert callable(IksurfmagCommand().run)
+        assert callable(IksurfmagCommand().run_if_new)
+
+    def test_format_returns_photos_when_image_present(self):
+        from commands.iksurfmag_command import _format
+        data = {"url": "https://iksurfmag.com/news/1", "title": "Title", "text": "Body", "image": b"img"}
+        with patch("commands.iksurfmag_command.rewrite_to_russian", return_value="текст"):
+            result = _format(data)
+        assert result.get("photos") == [b"img"]
+        assert "Title" in result["text"]
+
+    def test_format_returns_text_only_when_no_image(self):
+        from commands.iksurfmag_command import _format
+        data = {"url": "https://iksurfmag.com/news/1", "title": "Title", "text": "Body", "image": None}
+        with patch("commands.iksurfmag_command.rewrite_to_russian", return_value="текст"):
+            result = _format(data)
+        assert "photos" not in result
+        assert "text" in result
+
+    def test_format_falls_back_to_translation_when_rewrite_fails(self):
+        from commands.iksurfmag_command import _format
+        data = {"url": "https://iksurfmag.com/news/1", "title": "Title", "text": "Body", "image": None}
+        with patch("commands.iksurfmag_command.rewrite_to_russian", return_value=None), \
+             patch("commands.iksurfmag_command.translate_to_russian", return_value="переведено"):
+            result = _format(data)
+        assert "переведено" in result["text"]
+
+
+class TestRewriteHelper:
+    def test_returns_rewritten_text(self):
+        from helpers.rewrite_helper import rewrite_to_russian
+        mock_response = {"choices": [{"message": {"content": "текст на русском"}}]}
+        with patch("helpers.rewrite_helper.requests.post") as mock_post, \
+             patch.dict("os.environ", {"GROQ_API_KEY": "test-key"}):
+            mock_post.return_value.json.return_value = mock_response
+            mock_post.return_value.raise_for_status = lambda: None
+            result = rewrite_to_russian("Title", "Article body")
+        assert result == "текст на русском"
+
+    def test_returns_none_when_no_api_key(self):
+        from helpers.rewrite_helper import rewrite_to_russian
+        import os
+        env = {k: v for k, v in os.environ.items() if k != "GROQ_API_KEY"}
+        with patch.dict("os.environ", env, clear=True):
+            result = rewrite_to_russian("Title", "Body")
+        assert result is None
+
+    def test_returns_none_on_api_error(self):
+        from helpers.rewrite_helper import rewrite_to_russian
+        with patch("helpers.rewrite_helper.requests.post", side_effect=Exception("error")), \
+             patch.dict("os.environ", {"GROQ_API_KEY": "test-key"}):
+            result = rewrite_to_russian("Title", "Body")
+        assert result is None
