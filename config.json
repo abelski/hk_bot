@@ -1,8 +1,12 @@
 {
   "post_footer": "[HateKite](https://t.me/hatekite)",
-  "dm_commands": ["woo", "hkr", "iksurfmag"],
+  "dm_commands": ["woo", "hkr", "iksurfmag", "youtube"],
   "checkwhitelist": true,
   "whitelist_groups": ["-4570601504"],
+  "youtube_channels": [
+    "https://www.youtube.com/@gethighwithmike",
+    "https://www.youtube.com/@dontpullthebar"
+  ],
   "windguru_spots": [
     {"id": 137635, "name": "Lithuania - Svencele", "tz_offset": 3}
   ],
@@ -22,6 +26,11 @@
     },
     {
       "command": "iksurfmag",
+      "recipients": ["main_group"],
+      "cron": "0 * * * *"
+    },
+    {
+      "command": "youtube",
       "recipients": ["main_group"],
       "cron": "0 * * * *"
     }

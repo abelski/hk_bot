@@ -458,3 +458,64 @@ class TestYoutubeHelper:
         with patch.dict(sys.modules, {"yt_dlp": None}):
             result = download_youtube_video("https://www.youtube.com/watch?v=abc123")
         assert result is None
+
+
+class TestYoutubeCommand:
+    @pytest.mark.asyncio
+    async def test_run_returns_formatted_result(self):
+        from commands.youtube_command import YoutubeCommand
+        video_data = {
+            "url": "https://www.youtube.com/watch?v=abc123",
+            "title": "Test Video",
+            "description": "Test description",
+            "channel": "TestChannel",
+        }
+        formatted = {"text": "*Test Video*\n\nRussian text", "video": b"videodata"}
+        with patch("commands.youtube_command.load_config", return_value={"youtube_channels": ["https://www.youtube.com/@test"]}), \
+             patch("commands.youtube_command._fetch_latest_video", return_value=video_data), \
+             patch("commands.youtube_command._save_state"), \
+             patch("commands.youtube_command._format", return_value=formatted):
+            result = await YoutubeCommand().run()
+        assert result == formatted
+
+    @pytest.mark.asyncio
+    async def test_run_returns_error_when_all_channels_fail(self):
+        from commands.youtube_command import YoutubeCommand
+        with patch("commands.youtube_command.load_config", return_value={"youtube_channels": ["https://www.youtube.com/@test"]}), \
+             patch("commands.youtube_command._fetch_latest_video", return_value=None):
+            result = await YoutubeCommand().run()
+        assert "Could not fetch" in result
+
+    @pytest.mark.asyncio
+    async def test_run_if_new_returns_none_when_no_new_videos(self):
+        from commands.youtube_command import YoutubeCommand
+        video_data = {"url": "https://www.youtube.com/watch?v=abc123", "title": "T", "description": "", "channel": "C"}
+        state = {"https://www.youtube.com/@test": "https://www.youtube.com/watch?v=abc123"}
+        with patch("commands.youtube_command.load_config", return_value={"youtube_channels": ["https://www.youtube.com/@test"]}), \
+             patch("commands.youtube_command._fetch_latest_video", return_value=video_data), \
+             patch("commands.youtube_command._load_state", return_value=state):
+            result = await YoutubeCommand().run_if_new()
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_run_if_new_returns_result_for_new_video(self):
+        from commands.youtube_command import YoutubeCommand
+        video_data = {"url": "https://www.youtube.com/watch?v=newvideo", "title": "New", "description": "", "channel": "C"}
+        state = {"https://www.youtube.com/@test": "https://www.youtube.com/watch?v=oldvideo"}
+        formatted = {"text": "*New*\n\nRussian", "video": b"bytes"}
+        with patch("commands.youtube_command.load_config", return_value={"youtube_channels": ["https://www.youtube.com/@test"]}), \
+             patch("commands.youtube_command._fetch_latest_video", return_value=video_data), \
+             patch("commands.youtube_command._load_state", return_value=state), \
+             patch("commands.youtube_command._save_state"), \
+             patch("commands.youtube_command._format", return_value=formatted):
+            result = await YoutubeCommand().run_if_new()
+        assert result == formatted
+
+    def test_has_required_interface(self):
+        from commands.youtube_command import YoutubeCommand
+        from api.abstract_request_command import AbstractRequestCommand
+        from api.abstract_news_command import AbstractNewsCommand
+        assert issubclass(YoutubeCommand, AbstractRequestCommand)
+        assert issubclass(YoutubeCommand, AbstractNewsCommand)
+        assert YoutubeCommand.NAME == "youtube"
+        assert isinstance(YoutubeCommand.LABEL, str)
