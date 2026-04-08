@@ -174,7 +174,8 @@ def _format(data: dict) -> dict:
     if rewritten is None:
         excerpt = data["text"][:500] if data["text"] else ""
         rewritten = translate_to_russian(excerpt) if excerpt else data["title"]
-    text = f"*{data['title']}*\n\n{rewritten}"
+    title_ru = translate_to_russian(data["title"]) or data["title"]
+    text = f"*{title_ru}*\n\n{rewritten}"
     result = {"text": text}
     if data.get("video_url"):
         video_bytes = download_youtube_video(data["video_url"])

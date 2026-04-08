@@ -250,10 +250,11 @@ class TestIksurfmagCommand:
     def test_format_returns_photos_when_image_present(self):
         from commands.iksurfmag_command import _format
         data = {"url": "https://iksurfmag.com/news/1", "title": "Title", "text": "Body", "image": b"img"}
-        with patch("commands.iksurfmag_command.rewrite_to_russian", return_value="текст"):
+        with patch("commands.iksurfmag_command.rewrite_to_russian", return_value="текст"), \
+             patch("commands.iksurfmag_command.translate_to_russian", return_value="Заголовок"):
             result = _format(data)
         assert result.get("photos") == [b"img"]
-        assert "Title" in result["text"]
+        assert "Заголовок" in result["text"]
 
     def test_format_returns_text_only_when_no_image(self):
         from commands.iksurfmag_command import _format
