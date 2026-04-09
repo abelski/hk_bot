@@ -5,7 +5,11 @@
   "whitelist_groups": ["-4570601504"],
   "youtube_channels": [
     "https://www.youtube.com/@gethighwithmike",
-    "https://www.youtube.com/@dontpullthebar"
+    "https://www.youtube.com/@dontpullthebar",
+    "https://www.youtube.com/@antonchernyshov8759",
+    "https://www.youtube.com/@New_Generation_KiteContent",
+    "https://www.youtube.com/@stevenakkersdijk",
+    "https://www.youtube.com/@Prydeclub"
   ],
   "windguru_spots": [
     {"id": 137635, "name": "Lithuania - Svencele", "tz_offset": 3}
