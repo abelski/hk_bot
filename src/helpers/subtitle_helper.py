@@ -47,7 +47,7 @@ def burn_subtitles(video_bytes: bytes, srt_content: str) -> bytes | None:
         # Scale to max 480p and use crf=35 to keep output well under Telegram's 50MB limit.
         vf = (
             f"scale='min(854,iw)':'min(480,ih)':force_original_aspect_ratio=decrease,"
-            f"subtitles={srt_path}:force_style='FontName=DejaVu Sans,FontSize=6,"
+            f"subtitles={srt_path}:force_style='FontName=DejaVu Sans,FontSize=12,"
             f"PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=2,Shadow=1'"
         )
         cmd = [
@@ -65,32 +65,28 @@ def burn_subtitles(video_bytes: bytes, srt_content: str) -> bytes | None:
 
 
 def _vtt_to_translated_srt(vtt_text: str) -> str | None:
-    """Parse VTT with timing, batch-translate segments to Russian, return SRT string."""
+    """Parse VTT with timing, translate full transcript as one block, return SRT string."""
     segments = _parse_vtt_segments(vtt_text)
     if not segments:
         return None
-    texts = [text for _, _, text in segments]
-    translated_texts = _batch_translate(texts)
+
+    # Join all unique texts, translate once, then map back to segments by position.
+    unique_texts = list(dict.fromkeys(text for _, _, text in segments))
+    joined = "\n".join(unique_texts)
+    translated_joined = translate_to_russian(joined) or joined
+    translated_lines = translated_joined.split("\n")
+
+    # Build mapping original → translated (fall back to original on count mismatch)
+    if len(translated_lines) == len(unique_texts):
+        tr_map = dict(zip(unique_texts, translated_lines))
+    else:
+        tr_map = {}
+
     srt_lines = []
-    for i, ((start, end, _), translated) in enumerate(zip(segments, translated_texts), 1):
+    for i, (start, end, text) in enumerate(segments, 1):
+        translated = tr_map.get(text, text).strip() or text
         srt_lines.append(f"{i}\n{start} --> {end}\n{translated}\n")
     return "\n".join(srt_lines)
-
-
-def _batch_translate(texts: list) -> list:
-    """Translate a list of short strings one request per segment but skip duplicates.
-    Same text seen before reuses cached translation. Falls back to original on failure."""
-    cache: dict = {}
-    result = []
-    for text in texts:
-        if text in cache:
-            result.append(cache[text])
-        else:
-            tr = translate_to_russian(text)
-            translated = tr if tr and tr != text else text
-            cache[text] = translated
-            result.append(translated)
-    return result
 
 
 def _parse_vtt_segments(vtt_text: str) -> list:
