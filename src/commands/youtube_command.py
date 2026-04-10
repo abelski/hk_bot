@@ -1,3 +1,4 @@
+import asyncio
 import os
 import json
 
@@ -9,7 +10,7 @@ from config_loader import load_config
 from helpers.rewrite_helper import rewrite_to_russian
 from helpers.translation_helper import translate_to_russian
 from helpers.youtube_helper import download_youtube_video
-from helpers.voiceover_helper import process_youtube_video
+from helpers.subtitle_helper import process_youtube_video
 
 _STATE_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "../../youtube_state.json"
@@ -23,23 +24,23 @@ class YoutubeCommand(AbstractRequestCommand, AbstractNewsCommand):
     async def run(self):
         channels = load_config().get("youtube_channels", [])
         for channel_url in channels:
-            data = _fetch_latest_video(channel_url)
+            data = await asyncio.to_thread(_fetch_latest_video, channel_url)
             if data is not None:
                 _save_state(channel_url, data["url"])
-                return _format(data)
+                return await asyncio.to_thread(_format, data)
         return "Could not fetch YouTube videos, please try again later."
 
     async def run_if_new(self):
         channels = load_config().get("youtube_channels", [])
         state = _load_state()
         for channel_url in channels:
-            data = _fetch_latest_video(channel_url)
+            data = await asyncio.to_thread(_fetch_latest_video, channel_url)
             if data is None:
                 continue
             if data["url"] == state.get(channel_url):
                 continue
             _save_state(channel_url, data["url"])
-            return _format(data)
+            return await asyncio.to_thread(_format, data)
         return None
 
 
@@ -81,9 +82,7 @@ def _format(data: dict) -> dict:
     video_bytes = download_youtube_video(data["url"])
     if video_bytes:
         processed = process_youtube_video(data["url"], video_bytes)
-        if processed:
-            return {"text": text, "video": processed, "original_video": video_bytes}
-        return {"text": text, "video": video_bytes}
+        return {"text": text, "video": processed or video_bytes}
     return {"text": text + f"\n\n{data['url']}"}
 
 

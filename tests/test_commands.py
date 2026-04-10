@@ -288,7 +288,8 @@ class TestIksurfmagCommand:
         data = {"url": "https://iksurfmag.com/news/1", "title": "Title", "text": "Body",
                 "image": None, "video_url": "https://www.youtube.com/watch?v=abc123"}
         with patch("commands.iksurfmag_command.rewrite_to_russian", return_value="текст"), \
-             patch("commands.iksurfmag_command.download_youtube_video", return_value=b"videodata"):
+             patch("commands.iksurfmag_command.download_youtube_video", return_value=b"videodata"), \
+             patch("commands.iksurfmag_command.process_youtube_video", return_value=None):
             result = _format(data)
         assert result.get("video") == b"videodata"
         assert "abc123" not in result["text"]

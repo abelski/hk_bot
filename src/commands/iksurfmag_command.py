@@ -1,3 +1,4 @@
+import asyncio
 import os
 import json
 import re
@@ -10,7 +11,7 @@ from api.abstract_news_command import AbstractNewsCommand
 from helpers.rewrite_helper import rewrite_to_russian
 from helpers.translation_helper import translate_to_russian
 from helpers.youtube_helper import download_youtube_video
-from helpers.voiceover_helper import process_youtube_video
+from helpers.subtitle_helper import process_youtube_video
 
 _RSS_URL = "https://www.iksurfmag.com/kitesurfing-news/feed/"
 _STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../iksurfmag_state.json")
@@ -26,20 +27,20 @@ class IksurfmagCommand(AbstractRequestCommand, AbstractNewsCommand):
     LABEL = "IKSurf News 🪁"
 
     async def run(self):
-        data = _fetch_latest()
+        data = await asyncio.to_thread(_fetch_latest)
         if data is None:
             return "Could not fetch news, please try again later."
         _save_state(data["url"])
-        return _format(data)
+        return await asyncio.to_thread(_format, data)
 
     async def run_if_new(self):
-        data = _fetch_latest()
+        data = await asyncio.to_thread(_fetch_latest)
         if data is None:
             return None
         if data["url"] == _load_state():
             return None
         _save_state(data["url"])
-        return _format(data)
+        return await asyncio.to_thread(_format, data)
 
 
 def _fetch_latest(retries: int = 2) -> dict | None:
@@ -182,11 +183,7 @@ def _format(data: dict) -> dict:
         video_bytes = download_youtube_video(data["video_url"])
         if video_bytes:
             processed = process_youtube_video(data["video_url"], video_bytes)
-            if processed:
-                result["video"] = processed
-                result["original_video"] = video_bytes
-            else:
-                result["video"] = video_bytes
+            result["video"] = processed or video_bytes
         else:
             result["text"] += f"\n\n{data['video_url']}"
     elif data.get("image"):

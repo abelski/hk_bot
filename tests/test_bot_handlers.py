@@ -52,10 +52,11 @@ class TestAnswer:
     @pytest.mark.asyncio
     async def test_shows_command_list(self):
         from bot import answer
-        update = _make_update()
+        update = _make_update(user_id=42)
         ctx = _make_context()
         mock_cmd = _make_mock_cmd()
-        with patch("bot.load_commands", return_value=[mock_cmd]), \
+        with patch("bot.ADMIN_ID", 42), \
+             patch("bot.load_commands", return_value=[mock_cmd]), \
              patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer(update, ctx)
         update.effective_message.reply_text.assert_awaited_once()
@@ -66,12 +67,22 @@ class TestAnswer:
     @pytest.mark.asyncio
     async def test_shows_empty_keyboard_when_no_commands(self):
         from bot import answer
-        update = _make_update()
+        update = _make_update(user_id=42)
         ctx = _make_context()
-        with patch("bot.load_commands", return_value=[]), \
+        with patch("bot.ADMIN_ID", 42), \
+             patch("bot.load_commands", return_value=[]), \
              patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer(update, ctx)
         update.effective_message.reply_text.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_ignores_non_admin_in_dm(self):
+        from bot import answer
+        update = _make_update(user_id=999)
+        ctx = _make_context()
+        with patch("bot.ADMIN_ID", 42):
+            await answer(update, ctx)
+        update.effective_message.reply_text.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -243,12 +254,13 @@ class TestDmCommands:
     @pytest.mark.asyncio
     async def test_dm_shows_only_configured_commands(self):
         from bot import answer
-        update = _make_update()
+        update = _make_update(user_id=42)
         ctx = _make_context()
         cmd_woo = _make_mock_cmd(name="woo", label="WOO")
         cmd_hkr = _make_mock_cmd(name="hkr", label="HKR")
         config = {"dm_commands": ["woo"]}
-        with patch("bot.load_commands", return_value=[cmd_woo, cmd_hkr]), \
+        with patch("bot.ADMIN_ID", 42), \
+             patch("bot.load_commands", return_value=[cmd_woo, cmd_hkr]), \
              patch("bot.load_config", return_value=config), \
              patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer(update, ctx)
@@ -259,11 +271,12 @@ class TestDmCommands:
     @pytest.mark.asyncio
     async def test_dm_shows_all_when_dm_commands_absent(self):
         from bot import answer
-        update = _make_update()
+        update = _make_update(user_id=42)
         ctx = _make_context()
         cmd_woo = _make_mock_cmd(name="woo", label="WOO")
         cmd_hkr = _make_mock_cmd(name="hkr", label="HKR")
-        with patch("bot.load_commands", return_value=[cmd_woo, cmd_hkr]), \
+        with patch("bot.ADMIN_ID", 42), \
+             patch("bot.load_commands", return_value=[cmd_woo, cmd_hkr]), \
              patch("bot.load_config", return_value={}), \
              patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer(update, ctx)

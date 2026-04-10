@@ -37,6 +37,14 @@ def download_youtube_video(url: str) -> bytes | None:
 
 def extract_subtitles(url: str) -> str | None:
     """Extract auto-generated English subtitles as plain text using yt-dlp. Returns None on failure."""
+    vtt = extract_subtitles_vtt(url)
+    if vtt is None:
+        return None
+    return _parse_vtt(vtt)
+
+
+def extract_subtitles_vtt(url: str) -> str | None:
+    """Extract auto-generated English subtitles as raw VTT text using yt-dlp. Returns None on failure."""
     try:
         import yt_dlp
     except ImportError:
@@ -58,7 +66,7 @@ def extract_subtitles(url: str) -> str | None:
             for fname in os.listdir(tmpdir):
                 if fname.endswith(".vtt"):
                     with open(os.path.join(tmpdir, fname)) as f:
-                        return _parse_vtt(f.read())
+                        return f.read()
         except Exception:
             return None
     return None
