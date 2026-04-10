@@ -1,11 +1,8 @@
 import asyncio
-import logging
 import os
 import json
 
 import yt_dlp
-
-logger = logging.getLogger(__name__)
 
 from api.abstract_request_command import AbstractRequestCommand
 from api.abstract_news_command import AbstractNewsCommand
@@ -13,7 +10,6 @@ from config_loader import load_config
 from helpers.rewrite_helper import rewrite_to_russian
 from helpers.translation_helper import translate_to_russian
 from helpers.youtube_helper import download_youtube_video
-from helpers.subtitle_helper import process_youtube_video
 
 _STATE_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "../../youtube_state.json"
@@ -82,14 +78,9 @@ def _format(data: dict) -> dict:
         rewritten = translate_to_russian(excerpt) if excerpt else data["title"]
     title_ru = translate_to_russian(data["title"]) or data["title"]
     text = f"*{title_ru}*\n\n{rewritten}"
-    logger.info("youtube _format: downloading video %s", data["url"])
     video_bytes = download_youtube_video(data["url"])
-    logger.info("youtube _format: download done, size=%s", len(video_bytes) if video_bytes else None)
     if video_bytes:
-        logger.info("youtube _format: processing subtitles")
-        processed = process_youtube_video(data["url"], video_bytes)
-        logger.info("youtube _format: subtitle processing done, processed=%s", processed is not None)
-        return {"text": text, "video": processed or video_bytes}
+        return {"text": text, "video": video_bytes}
     return {"text": text + f"\n\n{data['url']}"}
 
 
