@@ -15,6 +15,9 @@ jobs:
           echo "${{ github.sha }} ${{ github.event.head_commit.message }}" > deploy_version.txt
           pct push 100 deploy_version.txt /root/hk_bot/deploy_version.txt
 
+      - name: Ensure system dependencies
+        run: pct exec 100 -- apt-get install -y -qq ffmpeg
+
       - name: Sync src to CT 100
         run: |
           find src -name "*.py" | while read f; do

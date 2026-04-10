@@ -79,16 +79,21 @@ async def _send_result(bot_or_query, result, *, is_query: bool = False) -> None:
                     await bot.send_message(chat_id=chat_id, text=overflow, parse_mode="Markdown")
         elif video:
             caption, overflow = _split_at_paragraph(text)
+            original_video = result.get("original_video")
             if is_query:
                 await bot_or_query.edit_message_reply_markup(reply_markup=None)
                 await bot_or_query.message.reply_video(BytesIO(video), caption=caption, parse_mode="Markdown")
                 if overflow:
                     await bot_or_query.message.reply_text(overflow, parse_mode="Markdown")
+                if original_video:
+                    await bot_or_query.message.reply_video(BytesIO(original_video))
             else:
                 bot, chat_id = bot_or_query
                 await bot.send_video(chat_id=chat_id, video=BytesIO(video), caption=caption, parse_mode="Markdown")
                 if overflow:
                     await bot.send_message(chat_id=chat_id, text=overflow, parse_mode="Markdown")
+                if original_video:
+                    await bot.send_video(chat_id=chat_id, video=BytesIO(original_video))
         else:
             if is_query:
                 await bot_or_query.edit_message_text(text, parse_mode="Markdown")

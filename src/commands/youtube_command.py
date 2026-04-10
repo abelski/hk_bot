@@ -9,6 +9,7 @@ from config_loader import load_config
 from helpers.rewrite_helper import rewrite_to_russian
 from helpers.translation_helper import translate_to_russian
 from helpers.youtube_helper import download_youtube_video
+from helpers.voiceover_helper import process_youtube_video
 
 _STATE_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "../../youtube_state.json"
@@ -79,6 +80,9 @@ def _format(data: dict) -> dict:
     text = f"*{title_ru}*\n\n{rewritten}"
     video_bytes = download_youtube_video(data["url"])
     if video_bytes:
+        processed = process_youtube_video(data["url"], video_bytes)
+        if processed:
+            return {"text": text, "video": processed, "original_video": video_bytes}
         return {"text": text, "video": video_bytes}
     return {"text": text + f"\n\n{data['url']}"}
 

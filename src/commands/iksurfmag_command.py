@@ -10,6 +10,7 @@ from api.abstract_news_command import AbstractNewsCommand
 from helpers.rewrite_helper import rewrite_to_russian
 from helpers.translation_helper import translate_to_russian
 from helpers.youtube_helper import download_youtube_video
+from helpers.voiceover_helper import process_youtube_video
 
 _RSS_URL = "https://www.iksurfmag.com/kitesurfing-news/feed/"
 _STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../iksurfmag_state.json")
@@ -180,7 +181,12 @@ def _format(data: dict) -> dict:
     if data.get("video_url"):
         video_bytes = download_youtube_video(data["video_url"])
         if video_bytes:
-            result["video"] = video_bytes
+            processed = process_youtube_video(data["video_url"], video_bytes)
+            if processed:
+                result["video"] = processed
+                result["original_video"] = video_bytes
+            else:
+                result["video"] = video_bytes
         else:
             result["text"] += f"\n\n{data['video_url']}"
     elif data.get("image"):
