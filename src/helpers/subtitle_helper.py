@@ -44,17 +44,16 @@ def burn_subtitles(video_bytes: bytes, srt_content: str) -> bytes | None:
             f.write(video_bytes)
         with open(srt_path, "w", encoding="utf-8") as f:
             f.write(srt_content)
-        # Scale to max 720p and use ultrafast preset to keep encoding fast on Pi4.
-        # The subtitles filter path must not contain special chars — tmpdir is safe.
+        # Scale to max 480p and use crf=35 to keep output well under Telegram's 50MB limit.
         vf = (
-            f"scale='min(1280,iw)':'min(720,ih)':force_original_aspect_ratio=decrease,"
+            f"scale='min(854,iw)':'min(480,ih)':force_original_aspect_ratio=decrease,"
             f"subtitles={srt_path}:force_style='FontName=DejaVu Sans,FontSize=6,"
             f"PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=2,Shadow=1'"
         )
         cmd = [
             "ffmpeg", "-y", "-i", video_path,
             "-vf", vf,
-            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "28",
+            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "35",
             "-c:a", "copy",
             output_path,
         ]
@@ -79,34 +78,18 @@ def _vtt_to_translated_srt(vtt_text: str) -> str | None:
 
 
 def _batch_translate(texts: list) -> list:
-    """Translate a list of short strings by batching with ||| separator.
-    Reduces N API calls to N/15 calls. Falls back to original on mismatch."""
-    SEP = " ||| "
-    batches = []
-    current: list = []
-    current_len = 0
-    for text in texts:
-        addition = len(text) + (len(SEP) if current else 0)
-        if current_len + addition > 450 and current:
-            batches.append(current)
-            current = [text]
-            current_len = len(text)
-        else:
-            current.append(text)
-            current_len += addition
-    if current:
-        batches.append(current)
-
+    """Translate a list of short strings one request per segment but skip duplicates.
+    Same text seen before reuses cached translation. Falls back to original on failure."""
+    cache: dict = {}
     result = []
-    for batch in batches:
-        joined = SEP.join(batch)
-        tr = translate_to_russian(joined)
-        if tr:
-            parts = [p.strip() for p in tr.split(SEP.strip())]
-            if len(parts) == len(batch):
-                result.extend(parts)
-                continue
-        result.extend(batch)  # fallback to originals
+    for text in texts:
+        if text in cache:
+            result.append(cache[text])
+        else:
+            tr = translate_to_russian(text)
+            translated = tr if tr and tr != text else text
+            cache[text] = translated
+            result.append(translated)
     return result
 
 
