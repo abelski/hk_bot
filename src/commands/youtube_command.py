@@ -1,8 +1,11 @@
 import asyncio
+import logging
 import os
 import json
 
 import yt_dlp
+
+logger = logging.getLogger(__name__)
 
 from api.abstract_request_command import AbstractRequestCommand
 from api.abstract_news_command import AbstractNewsCommand
@@ -79,9 +82,13 @@ def _format(data: dict) -> dict:
         rewritten = translate_to_russian(excerpt) if excerpt else data["title"]
     title_ru = translate_to_russian(data["title"]) or data["title"]
     text = f"*{title_ru}*\n\n{rewritten}"
+    logger.info("youtube _format: downloading video %s", data["url"])
     video_bytes = download_youtube_video(data["url"])
+    logger.info("youtube _format: download done, size=%s", len(video_bytes) if video_bytes else None)
     if video_bytes:
+        logger.info("youtube _format: processing subtitles")
         processed = process_youtube_video(data["url"], video_bytes)
+        logger.info("youtube _format: subtitle processing done, processed=%s", processed is not None)
         return {"text": text, "video": processed or video_bytes}
     return {"text": text + f"\n\n{data['url']}"}
 

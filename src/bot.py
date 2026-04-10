@@ -171,8 +171,12 @@ async def command_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         await query.edit_message_text("Unknown command.")
         return
     await query.message.chat.send_action("typing")
-    result = await cmd.run()
-    await _send_result(query, result, is_query=True)
+    try:
+        result = await cmd.run()
+        await _send_result(query, result, is_query=True)
+    except Exception:
+        logger.exception("Error running command %s", cmd_name)
+        raise
 
 
 async def reload_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
