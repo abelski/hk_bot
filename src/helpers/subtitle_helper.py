@@ -66,15 +66,48 @@ def burn_subtitles(video_bytes: bytes, srt_content: str) -> bytes | None:
 
 
 def _vtt_to_translated_srt(vtt_text: str) -> str | None:
-    """Parse VTT with timing, translate each segment to Russian, return SRT string."""
+    """Parse VTT with timing, batch-translate segments to Russian, return SRT string."""
     segments = _parse_vtt_segments(vtt_text)
     if not segments:
         return None
+    texts = [text for _, _, text in segments]
+    translated_texts = _batch_translate(texts)
     srt_lines = []
-    for i, (start, end, text) in enumerate(segments, 1):
-        translated = translate_to_russian(text) or text
+    for i, ((start, end, _), translated) in enumerate(zip(segments, translated_texts), 1):
         srt_lines.append(f"{i}\n{start} --> {end}\n{translated}\n")
     return "\n".join(srt_lines)
+
+
+def _batch_translate(texts: list) -> list:
+    """Translate a list of short strings by batching with ||| separator.
+    Reduces N API calls to N/15 calls. Falls back to original on mismatch."""
+    SEP = " ||| "
+    batches = []
+    current: list = []
+    current_len = 0
+    for text in texts:
+        addition = len(text) + (len(SEP) if current else 0)
+        if current_len + addition > 450 and current:
+            batches.append(current)
+            current = [text]
+            current_len = len(text)
+        else:
+            current.append(text)
+            current_len += addition
+    if current:
+        batches.append(current)
+
+    result = []
+    for batch in batches:
+        joined = SEP.join(batch)
+        tr = translate_to_russian(joined)
+        if tr:
+            parts = [p.strip() for p in tr.split(SEP.strip())]
+            if len(parts) == len(batch):
+                result.extend(parts)
+                continue
+        result.extend(batch)  # fallback to originals
+    return result
 
 
 def _parse_vtt_segments(vtt_text: str) -> list:
