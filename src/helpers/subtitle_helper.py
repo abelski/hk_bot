@@ -48,7 +48,7 @@ def burn_subtitles(video_bytes: bytes, srt_content: str) -> bytes | None:
         # The subtitles filter path must not contain special chars — tmpdir is safe.
         vf = (
             f"scale='min(1280,iw)':'min(720,ih)':force_original_aspect_ratio=decrease,"
-            f"subtitles={srt_path}:force_style='FontName=DejaVu Sans,FontSize=18,"
+            f"subtitles={srt_path}:force_style='FontName=DejaVu Sans,FontSize=6,"
             f"PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=2,Shadow=1'"
         )
         cmd = [
