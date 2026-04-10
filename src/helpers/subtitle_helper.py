@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import subprocess
@@ -5,20 +6,32 @@ import tempfile
 
 from helpers.translation_helper import translate_to_russian
 
+logger = logging.getLogger(__name__)
+
 
 def process_youtube_video(url: str, video_bytes: bytes) -> bytes | None:
     """Extract subtitles (or transcribe), translate to Russian, burn into video.
     Returns processed video bytes, or None if any step fails."""
     from helpers.youtube_helper import extract_subtitles_vtt
     srt = None
+    logger.info("subtitle: extracting vtt from %s", url)
     vtt = extract_subtitles_vtt(url)
+    logger.info("subtitle: vtt result len=%s", len(vtt) if vtt else None)
     if vtt:
+        logger.info("subtitle: translating vtt segments")
         srt = _vtt_to_translated_srt(vtt)
+        logger.info("subtitle: srt from vtt len=%s", len(srt) if srt else None)
     if not srt:
+        logger.info("subtitle: falling back to whisper transcription")
         srt = _whisper_to_translated_srt(video_bytes)
+        logger.info("subtitle: srt from whisper len=%s", len(srt) if srt else None)
     if not srt:
+        logger.info("subtitle: no transcript available, returning None")
         return None
-    return burn_subtitles(video_bytes, srt)
+    logger.info("subtitle: burning subtitles into video")
+    result = burn_subtitles(video_bytes, srt)
+    logger.info("subtitle: burn done, result size=%s", len(result) if result else None)
+    return result
 
 
 def burn_subtitles(video_bytes: bytes, srt_content: str) -> bytes | None:
