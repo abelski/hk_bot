@@ -44,13 +44,21 @@ def burn_subtitles(video_bytes: bytes, srt_content: str) -> bytes | None:
             f.write(video_bytes)
         with open(srt_path, "w", encoding="utf-8") as f:
             f.write(srt_content)
+        # Scale to max 720p and use ultrafast preset to keep encoding fast on Pi4.
+        # The subtitles filter path must not contain special chars — tmpdir is safe.
+        vf = (
+            f"scale='min(1280,iw)':'min(720,ih)':force_original_aspect_ratio=decrease,"
+            f"subtitles={srt_path}:force_style='FontName=DejaVu Sans,FontSize=18,"
+            f"PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=2,Shadow=1'"
+        )
         cmd = [
             "ffmpeg", "-y", "-i", video_path,
-            "-vf", f"subtitles={srt_path}:force_style='FontName=DejaVu Sans,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=2,Shadow=1'",
+            "-vf", vf,
+            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "28",
             "-c:a", "copy",
             output_path,
         ]
-        result = subprocess.run(cmd, capture_output=True, timeout=300)
+        result = subprocess.run(cmd, capture_output=True, timeout=600)
         if result.returncode != 0:
             return None
         with open(output_path, "rb") as f:
