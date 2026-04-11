@@ -61,10 +61,21 @@ def _fetch_latest_video(channel_url: str) -> dict | None:
         video_id = entry.get("id")
         if not video_id:
             return None
+        video_url = f"https://www.youtube.com/watch?v={video_id}"
+        # Fetch full metadata to get description (extract_flat omits it)
+        full_opts = {"quiet": True, "no_warnings": True}
+        try:
+            with yt_dlp.YoutubeDL(full_opts) as ydl:
+                full_info = ydl.extract_info(video_url, download=False)
+            description = full_info.get("description") or ""
+            title = full_info.get("title") or entry.get("title", "")
+        except Exception:
+            description = ""
+            title = entry.get("title", "")
         return {
-            "url": f"https://www.youtube.com/watch?v={video_id}",
-            "title": entry.get("title", ""),
-            "description": entry.get("description") or "",
+            "url": video_url,
+            "title": title,
+            "description": description,
             "channel": info.get("channel") or info.get("title", channel_url),
         }
     except Exception:
