@@ -40,28 +40,32 @@ class TestWooCommand:
     def test_format_leaderboard_with_countries(self):
         from commands.woo_command import _format_leaderboard
         entries = [
-            {"rank": 1, "score": 25.9, "user": {"first_name": "Raigo", "last_name": "🇪🇪 test"}},
-            {"rank": 2, "score": 22.1, "user": {"first_name": "Other", "last_name": "Rider"}},
+            {"rank": 1, "score": 25.9, "user": {"first_name": "Raigo", "last_name": "Test"}},
         ]
-        countries = [{"name": "Estonia", "flag": "🇪🇪"}]
-        result = _format_leaderboard(entries, top_n=2, countries=countries)
-        assert "#1 · Raigo 🇪🇪 test · 25.9m" in result
-        assert "🇪🇪 Estonia чемпион - Raigo 🇪🇪 test - 25.9m" in result
+        countries = [{"name": "Estonia", "code": "EE"}]
+        champion = {"rank": 1, "score": 25.9, "user": {"first_name": "Raigo", "last_name": "Test"}}
+        result = _format_leaderboard(entries, top_n=1, countries=countries, country_champions={"EE": champion})
+        assert "#1 · Raigo Test · 25.9m" in result
+        assert "🇪🇪 Estonia чемпион - Raigo Test - 25.9m" in result
 
     def test_format_leaderboard_skips_missing_country(self):
         from commands.woo_command import _format_leaderboard
-        entries = [
-            {"rank": 1, "score": 10.0, "user": {"first_name": "A", "last_name": "B"}},
-        ]
-        countries = [{"name": "Ukraine", "flag": "🇺🇦"}]
-        result = _format_leaderboard(entries, top_n=3, countries=countries)
+        entries = [{"rank": 1, "score": 10.0, "user": {"first_name": "A", "last_name": "B"}}]
+        countries = [{"name": "Ukraine", "code": "UA"}]
+        result = _format_leaderboard(entries, top_n=3, countries=countries, country_champions={})
         assert "Ukraine" not in result
 
     def test_format_leaderboard_no_countries(self):
         from commands.woo_command import _format_leaderboard
         entries = [{"rank": 1, "score": 10.0, "user": {"first_name": "A", "last_name": "B"}}]
-        result = _format_leaderboard(entries, top_n=3, countries=[])
+        result = _format_leaderboard(entries, top_n=3, countries=[], country_champions={})
         assert "чемпион" not in result
+
+    def test_flag_from_code(self):
+        from commands.woo_command import _flag_from_code
+        assert _flag_from_code("RU") == "🇷🇺"
+        assert _flag_from_code("BY") == "🇧🇾"
+        assert _flag_from_code("EE") == "🇪🇪"
 
 
 class TestHkrCommand:

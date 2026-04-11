@@ -3,11 +3,11 @@
   "woo_top_limit": 3,
   "woo_fetch_limit": 100,
   "woo_countries": [
-    {"name": "Russia", "flag": "🇷🇺"},
-    {"name": "Belarus", "flag": "🇧🇾"},
-    {"name": "Egypt", "flag": "🇪🇬"},
-    {"name": "Vietnam", "flag": "🇻🇳"},
-    {"name": "South Africa", "flag": "🇿🇦"}
+    {"name": "Russia", "code": "RU"},
+    {"name": "Belarus", "code": "BY"},
+    {"name": "Egypt", "code": "EG"},
+    {"name": "Vietnam", "code": "VN"},
+    {"name": "South Africa", "code": "ZA"}
   ],
   "dm_commands": ["woo", "hkr", "iksurfmag", "youtube"],
   "checkwhitelist": true,

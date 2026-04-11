@@ -15,6 +15,11 @@ _MONTHS_RU = [
 ]
 
 
+def _flag_from_code(code):
+    """Convert ISO 3166-1 alpha-2 country code to flag emoji (e.g. 'RU' → '🇷🇺')."""
+    return "".join(chr(0x1F1E6 + ord(c) - ord("A")) for c in code.upper())
+
+
 class WooCommand(AbstractRequestCommand, AbstractCronCommand):
     NAME = "woo"
     LABEL = "WOO Leaderboard 🏄"
@@ -28,7 +33,12 @@ class WooCommand(AbstractRequestCommand, AbstractCronCommand):
         entries = _fetch_entries(fetch_limit)
         if entries is None:
             return "Could not fetch leaderboard, please try again later."
-        return _format_leaderboard(entries, top_n, countries)
+        country_champions = {}
+        for country in countries:
+            top = _fetch_country_top1(country["code"])
+            if top:
+                country_champions[country["code"]] = top
+        return _format_leaderboard(entries, top_n, countries, country_champions)
 
 
 def _today_unix():
@@ -59,7 +69,30 @@ def _fetch_entries(limit, retries=2):
             time.sleep(1)
 
 
-def _format_leaderboard(entries, top_n, countries):
+def _fetch_country_top1(country_code, retries=2):
+    sd, ed = _today_unix()
+    params = {
+        "offset": 0,
+        "limit": 1,
+        "feature": "height",
+        "game_type": "big_air",
+        "country_code": country_code,
+        "start_date": sd,
+        "end_date": ed,
+    }
+    for attempt in range(retries + 1):
+        try:
+            r = requests.get(API_URL, params=params, headers=HEADERS, timeout=10)
+            r.raise_for_status()
+            items = r.json()["items"]
+            return items[0] if items else None
+        except Exception:
+            if attempt == retries:
+                return None
+            time.sleep(1)
+
+
+def _format_leaderboard(entries, top_n, countries, country_champions):
     now = datetime.now(timezone.utc)
     date_str = f"{now.day} {_MONTHS_RU[now.month]} {now.year}"
     header = f"Сегодня {date_str} лучшие по WOO 🏄"
@@ -68,18 +101,13 @@ def _format_leaderboard(entries, top_n, countries):
     lines = [header, ""]
     for e in entries[:top_n]:
         name = f"{e['user']['first_name']} {e['user']['last_name']}".strip()
-        score = e["score"]
-        lines.append(f"#{e['rank']} · {name} · {score}m")
-    if countries:
+        lines.append(f"#{e['rank']} · {name} · {e['score']}m")
+    if country_champions:
         lines.append("")
         for country in countries:
-            flag = country["flag"]
-            champion = next(
-                (e for e in entries
-                 if flag in f"{e['user']['first_name']} {e['user']['last_name']}"),
-                None,
-            )
+            champion = country_champions.get(country["code"])
             if champion:
+                flag = _flag_from_code(country["code"])
                 cname = f"{champion['user']['first_name']} {champion['user']['last_name']}".strip()
                 lines.append(f"{flag} {country['name']} чемпион - {cname} - {champion['score']}m")
     return "\n".join(lines)
