@@ -37,29 +37,33 @@ class TestWooCommand:
         assert isinstance(WooCommand.LABEL, str)
         assert callable(WooCommand().run)
 
-    def test_format_leaderboard_with_countries(self):
+    def test_format_leaderboard_with_yesterday_and_alltime(self):
         from commands.woo_command import _format_leaderboard
-        entries = [
-            {"rank": 1, "score": 25.9, "user": {"first_name": "Raigo", "last_name": "Test"}},
-        ]
+        entry = {"rank": 1, "score": 25.9, "user": {"first_name": "Raigo", "last_name": "Test"}}
+        alltime = {"rank": 1, "score": 30.0, "user": {"first_name": "Kaimar", "last_name": "H"}}
         countries = [{"name": "Estonia", "code": "EE"}]
-        champion = {"rank": 1, "score": 25.9, "user": {"first_name": "Raigo", "last_name": "Test"}}
-        result = _format_leaderboard(entries, top_n=1, countries=countries, country_champions={"EE": champion})
-        assert "#1 · Raigo Test · 25.9m" in result
-        assert "🇪🇪 Estonia чемпион - Raigo Test - 25.9m" in result
+        country_data = {"EE": {"today": entry, "alltime": alltime}}
+        result = _format_leaderboard([entry], top_n=1, countries=countries, country_data=country_data)
+        assert "🇪🇪 Estonia" in result
+        assert "сегодня - Raigo Test · 25.9m" in result
+        assert "рекорд - Kaimar H · 30.0m" in result
 
-    def test_format_leaderboard_skips_missing_country(self):
+    def test_format_leaderboard_no_today(self):
         from commands.woo_command import _format_leaderboard
-        entries = [{"rank": 1, "score": 10.0, "user": {"first_name": "A", "last_name": "B"}}]
-        countries = [{"name": "Ukraine", "code": "UA"}]
-        result = _format_leaderboard(entries, top_n=3, countries=countries, country_champions={})
-        assert "Ukraine" not in result
+        entry = {"rank": 1, "score": 25.9, "user": {"first_name": "Raigo", "last_name": "Test"}}
+        alltime = {"rank": 1, "score": 30.0, "user": {"first_name": "Kaimar", "last_name": "H"}}
+        countries = [{"name": "Estonia", "code": "EE"}]
+        country_data = {"EE": {"today": None, "alltime": alltime}}
+        result = _format_leaderboard([entry], top_n=1, countries=countries, country_data=country_data)
+        assert "сегодня - нет" in result
+        assert "рекорд - Kaimar H · 30.0m" in result
 
     def test_format_leaderboard_no_countries(self):
         from commands.woo_command import _format_leaderboard
         entries = [{"rank": 1, "score": 10.0, "user": {"first_name": "A", "last_name": "B"}}]
-        result = _format_leaderboard(entries, top_n=3, countries=[], country_champions={})
-        assert "чемпион" not in result
+        result = _format_leaderboard(entries, top_n=3, countries=[], country_data={})
+        assert "рекорд" not in result
+        assert "вчера" not in result
 
     def test_flag_from_code(self):
         from commands.woo_command import _flag_from_code

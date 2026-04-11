@@ -1,6 +1,6 @@
 import time
 import requests
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from api.abstract_request_command import AbstractRequestCommand
 from api.abstract_cron_command import AbstractCronCommand
 
@@ -20,6 +20,14 @@ def _flag_from_code(code):
     return "".join(chr(0x1F1E6 + ord(c) - ord("A")) for c in code.upper())
 
 
+def _day_unix(days_offset=0):
+    """Return (start, end) unix timestamps for today + days_offset (e.g. -1 = yesterday)."""
+    now = datetime.now(timezone.utc)
+    day = datetime(now.year, now.month, now.day, tzinfo=timezone.utc) + timedelta(days=days_offset)
+    start = int(day.timestamp())
+    return start, start + 86400 - 1
+
+
 class WooCommand(AbstractRequestCommand, AbstractCronCommand):
     NAME = "woo"
     LABEL = "WOO Leaderboard 🏄"
@@ -33,23 +41,18 @@ class WooCommand(AbstractRequestCommand, AbstractCronCommand):
         entries = _fetch_entries(fetch_limit)
         if entries is None:
             return "Could not fetch leaderboard, please try again later."
-        country_champions = {}
+        country_data = {}
         for country in countries:
-            top = _fetch_country_top1(country["code"])
-            if top:
-                country_champions[country["code"]] = top
-        return _format_leaderboard(entries, top_n, countries, country_champions)
-
-
-def _today_unix():
-    now = datetime.now(timezone.utc)
-    start = int(datetime(now.year, now.month, now.day, tzinfo=timezone.utc).timestamp())
-    end = start + 86400 - 1
-    return start, end
+            code = country["code"]
+            country_data[code] = {
+                "today": _fetch_country_top1(code, days_offset=0),
+                "alltime": _fetch_country_top1(code),
+            }
+        return _format_leaderboard(entries, top_n, countries, country_data)
 
 
 def _fetch_entries(limit, retries=2):
-    sd, ed = _today_unix()
+    sd, ed = _day_unix(0)
     params = {
         "offset": 0,
         "limit": limit,
@@ -69,7 +72,8 @@ def _fetch_entries(limit, retries=2):
             time.sleep(1)
 
 
-def _fetch_country_top1(country_code, retries=2):
+def _fetch_country_top1(country_code, days_offset=None, retries=2):
+    """Fetch top 1 for a country. If days_offset is None, fetches all-time."""
     params = {
         "offset": 0,
         "limit": 1,
@@ -77,6 +81,10 @@ def _fetch_country_top1(country_code, retries=2):
         "game_type": "big_air",
         "country_code": country_code,
     }
+    if days_offset is not None:
+        sd, ed = _day_unix(days_offset)
+        params["start_date"] = sd
+        params["end_date"] = ed
     for attempt in range(retries + 1):
         try:
             r = requests.get(API_URL, params=params, headers=HEADERS, timeout=10)
@@ -89,7 +97,11 @@ def _fetch_country_top1(country_code, retries=2):
             time.sleep(1)
 
 
-def _format_leaderboard(entries, top_n, countries, country_champions):
+def _rider_name(entry):
+    return f"{entry['user']['first_name']} {entry['user']['last_name']}".strip()
+
+
+def _format_leaderboard(entries, top_n, countries, country_data):
     now = datetime.now(timezone.utc)
     date_str = f"{now.day} {_MONTHS_RU[now.month]} {now.year}"
     header = f"Сегодня {date_str} лучшие по WOO 🏄"
@@ -97,14 +109,23 @@ def _format_leaderboard(entries, top_n, countries, country_champions):
         return f"{header}\n\nРезультатов пока нет."
     lines = [header, ""]
     for e in entries[:top_n]:
-        name = f"{e['user']['first_name']} {e['user']['last_name']}".strip()
-        lines.append(f"#{e['rank']} · {name} · {e['score']}m")
-    if country_champions:
+        lines.append(f"#{e['rank']} · {_rider_name(e)} · {e['score']}m")
+    if country_data:
         lines.append("")
         for country in countries:
-            champion = country_champions.get(country["code"])
-            if champion:
-                flag = _flag_from_code(country["code"])
-                cname = f"{champion['user']['first_name']} {champion['user']['last_name']}".strip()
-                lines.append(f"{flag} {country['name']} чемпион - {cname} - {champion['score']}m")
+            code = country["code"]
+            data = country_data.get(code, {})
+            flag = _flag_from_code(code)
+            name = country["name"]
+            today = data.get("today")
+            alltime = data.get("alltime")
+            if today:
+                today_str = f"{_rider_name(today)} · {today['score']}m"
+            else:
+                today_str = "нет"
+            if alltime:
+                alltime_str = f"{_rider_name(alltime)} · {alltime['score']}m"
+                lines.append(f"{flag} {name}: сегодня - {today_str} | рекорд - {alltime_str}")
+            else:
+                lines.append(f"{flag} {name}: сегодня - {today_str}")
     return "\n".join(lines)
