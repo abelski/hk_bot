@@ -70,15 +70,12 @@ def _fetch_entries(limit, retries=2):
 
 
 def _fetch_country_top1(country_code, retries=2):
-    sd, ed = _today_unix()
     params = {
         "offset": 0,
         "limit": 1,
         "feature": "height",
         "game_type": "big_air",
         "country_code": country_code,
-        "start_date": sd,
-        "end_date": ed,
     }
     for attempt in range(retries + 1):
         try:
