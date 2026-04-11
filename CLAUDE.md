@@ -51,7 +51,7 @@ The integration between the bot and MCP server is the main gap left for developm
 - **New dependencies:** Before adding any new tool, library, or external service, ask for consent first.
 - **Unit tests:** Always write unit tests for new or modified logic.
 - **Post-implementation checks:** After every implementation, verify the change works end-to-end (run tests, check logs, manually test the affected behaviour).
-
+do not push anything to git without user consent
 ## Key Integration Pattern
 
 ```python

@@ -1,5 +1,14 @@
 {
   "post_footer": "[HateKite](https://t.me/hatekite)",
+  "woo_top_limit": 3,
+  "woo_fetch_limit": 100,
+  "woo_countries": [
+    {"name": "Russia", "flag": "🇷🇺"},
+    {"name": "Belarus", "flag": "🇧🇾"},
+    {"name": "Egypt", "flag": "🇪🇬"},
+    {"name": "Vietnam", "flag": "🇻🇳"},
+    {"name": "South Africa", "flag": "🇿🇦"}
+  ],
   "dm_commands": ["woo", "hkr", "iksurfmag", "youtube"],
   "checkwhitelist": true,
   "whitelist_groups": ["-4570601504"],

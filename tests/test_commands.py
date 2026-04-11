@@ -15,15 +15,15 @@ class TestWooCommand:
     async def test_returns_formatted_leaderboard(self):
         from commands.woo_command import WooCommand
         entries = [{"rank": 1, "user": {"first_name": "A", "last_name": "B"}, "score": 10}]
-        with patch("commands.woo_command._fetch_top3", return_value=entries), \
-             patch("commands.woo_command._format_top3", return_value="formatted"):
+        with patch("commands.woo_command._fetch_entries", return_value=entries), \
+             patch("commands.woo_command._format_leaderboard", return_value="formatted"):
             result = await WooCommand().run()
         assert result == "formatted"
 
     @pytest.mark.asyncio
     async def test_returns_error_when_fetch_fails(self):
         from commands.woo_command import WooCommand
-        with patch("commands.woo_command._fetch_top3", return_value=None):
+        with patch("commands.woo_command._fetch_entries", return_value=None):
             result = await WooCommand().run()
         assert "Could not fetch" in result
 
@@ -36,6 +36,32 @@ class TestWooCommand:
         assert isinstance(WooCommand.NAME, str)
         assert isinstance(WooCommand.LABEL, str)
         assert callable(WooCommand().run)
+
+    def test_format_leaderboard_with_countries(self):
+        from commands.woo_command import _format_leaderboard
+        entries = [
+            {"rank": 1, "score": 25.9, "user": {"first_name": "Raigo", "last_name": "🇪🇪 test"}},
+            {"rank": 2, "score": 22.1, "user": {"first_name": "Other", "last_name": "Rider"}},
+        ]
+        countries = [{"name": "Estonia", "flag": "🇪🇪"}]
+        result = _format_leaderboard(entries, top_n=2, countries=countries)
+        assert "#1 · Raigo 🇪🇪 test · 25.9m" in result
+        assert "🇪🇪 Estonia чемпион - Raigo 🇪🇪 test - 25.9m" in result
+
+    def test_format_leaderboard_skips_missing_country(self):
+        from commands.woo_command import _format_leaderboard
+        entries = [
+            {"rank": 1, "score": 10.0, "user": {"first_name": "A", "last_name": "B"}},
+        ]
+        countries = [{"name": "Ukraine", "flag": "🇺🇦"}]
+        result = _format_leaderboard(entries, top_n=3, countries=countries)
+        assert "Ukraine" not in result
+
+    def test_format_leaderboard_no_countries(self):
+        from commands.woo_command import _format_leaderboard
+        entries = [{"rank": 1, "score": 10.0, "user": {"first_name": "A", "last_name": "B"}}]
+        result = _format_leaderboard(entries, top_n=3, countries=[])
+        assert "чемпион" not in result
 
 
 class TestHkrCommand:

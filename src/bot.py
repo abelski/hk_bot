@@ -269,7 +269,7 @@ async def update_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             if result.returncode != 0:
                 raise RuntimeError(result.stderr.strip() or result.stdout.strip())
         else:
-            raise RuntimeError("BOT_REPO_URL not configured in .cred")
+            raise RuntimeError("BOT_REPO_URL not configured in .env")
 
         await query.edit_message_text("Restarting service...")
         subprocess.Popen(["systemctl", "restart", BOT_SERVICE])
@@ -306,7 +306,7 @@ async def on_startup(app) -> None:
 
 def main() -> None:
     if not TELEGRAM_BOT_TOKEN:
-        raise ValueError("TELEGRAM_BOT_TOKEN not set in .cred")
+        raise ValueError("TELEGRAM_BOT_TOKEN not set in .env")
 
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).post_init(on_startup).build()
     schedule_jobs(app)

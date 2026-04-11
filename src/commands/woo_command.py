@@ -20,10 +20,15 @@ class WooCommand(AbstractRequestCommand, AbstractCronCommand):
     LABEL = "WOO Leaderboard 🏄"
 
     async def run(self) -> str:
-        entries = _fetch_top3()
+        from config_loader import load_config
+        cfg = load_config()
+        top_n = cfg.get("woo_top_limit", 3)
+        fetch_limit = cfg.get("woo_fetch_limit", 100)
+        countries = cfg.get("woo_countries", [])
+        entries = _fetch_entries(fetch_limit)
         if entries is None:
             return "Could not fetch leaderboard, please try again later."
-        return _format_top3(entries)
+        return _format_leaderboard(entries, top_n, countries)
 
 
 def _today_unix():
@@ -33,11 +38,11 @@ def _today_unix():
     return start, end
 
 
-def _fetch_top3(retries=2):
+def _fetch_entries(limit, retries=2):
     sd, ed = _today_unix()
     params = {
         "offset": 0,
-        "limit": 3,
+        "limit": limit,
         "feature": "height",
         "game_type": "big_air",
         "start_date": sd,
@@ -54,15 +59,27 @@ def _fetch_top3(retries=2):
             time.sleep(1)
 
 
-def _format_top3(entries):
+def _format_leaderboard(entries, top_n, countries):
     now = datetime.now(timezone.utc)
     date_str = f"{now.day} {_MONTHS_RU[now.month]} {now.year}"
     header = f"Сегодня {date_str} лучшие по WOO 🏄"
     if not entries:
         return f"{header}\n\nРезультатов пока нет."
     lines = [header, ""]
-    for e in entries:
+    for e in entries[:top_n]:
         name = f"{e['user']['first_name']} {e['user']['last_name']}".strip()
         score = e["score"]
         lines.append(f"#{e['rank']} · {name} · {score}m")
+    if countries:
+        lines.append("")
+        for country in countries:
+            flag = country["flag"]
+            champion = next(
+                (e for e in entries
+                 if flag in f"{e['user']['first_name']} {e['user']['last_name']}"),
+                None,
+            )
+            if champion:
+                cname = f"{champion['user']['first_name']} {champion['user']['last_name']}".strip()
+                lines.append(f"{flag} {country['name']} чемпион - {cname} - {champion['score']}m")
     return "\n".join(lines)
