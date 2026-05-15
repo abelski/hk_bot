@@ -72,6 +72,72 @@ class TestWooCommand:
         assert _flag_from_code("EE") == "🇪🇪"
 
 
+class TestSurfrCommand:
+    @pytest.mark.asyncio
+    async def test_returns_formatted_leaderboard(self):
+        from commands.surfr_command import SurfrCommand
+        entries = [{"user": {"name": "Denis K", "country": "NL"}, "value": 36.3}]
+        with patch("commands.surfr_command._fetch_leaderboard", return_value=entries), \
+             patch("commands.surfr_command._format_leaderboard", return_value="formatted"):
+            result = await SurfrCommand().run()
+        assert result == "formatted"
+
+    @pytest.mark.asyncio
+    async def test_returns_error_when_fetch_fails(self):
+        from commands.surfr_command import SurfrCommand
+        with patch("commands.surfr_command._fetch_leaderboard", return_value=None):
+            result = await SurfrCommand().run()
+        assert "Could not fetch" in result
+
+    def test_has_required_interface(self):
+        from commands.surfr_command import SurfrCommand
+        from api.abstract_request_command import AbstractRequestCommand
+        assert issubclass(SurfrCommand, AbstractRequestCommand)
+        assert isinstance(SurfrCommand.NAME, str)
+        assert isinstance(SurfrCommand.LABEL, str)
+        assert callable(SurfrCommand().run)
+
+    def test_format_leaderboard_shows_top5_with_flags(self):
+        from commands.surfr_command import _format_leaderboard
+        entries = [
+            {"user": {"name": "J. Overbeek", "country": "NL"}, "value": 36.3},
+            {"user": {"name": "Hugo W", "country": "NZ"}, "value": 36.27},
+            {"user": {"name": "Ivan", "country": "RU"}, "value": 17.5},
+        ]
+        result = _format_leaderboard(entries)
+        assert "#1 · 🇳🇱 J. Overbeek · 36.3m" in result
+        assert "#2 · 🇳🇿 Hugo W · 36.27m" in result
+        assert "#3 · 🇷🇺 Ivan · 17.5m" in result
+
+    def test_format_leaderboard_empty(self):
+        from commands.surfr_command import _format_leaderboard
+        result = _format_leaderboard([])
+        assert "Результатов пока нет" in result
+
+    def test_format_leaderboard_no_country(self):
+        from commands.surfr_command import _format_leaderboard
+        entries = [{"user": {"name": "Unknown Rider"}, "value": 10.0}]
+        result = _format_leaderboard(entries)
+        assert "#1 · Unknown Rider · 10.0m" in result
+
+    def test_rider_name_reads_nested_user(self):
+        from commands.surfr_command import _rider_name
+        assert _rider_name({"user": {"name": "Denis K"}}) == "Denis K"
+        assert _rider_name({"user": {}}) == "Unknown"
+        assert _rider_name({}) == "Unknown"
+
+    def test_rider_score_rounds_float(self):
+        from commands.surfr_command import _rider_score
+        assert _rider_score({"value": 36.271234}) == 36.27
+        assert _rider_score({}) == 0
+
+    def test_flag_from_code(self):
+        from commands.surfr_command import _flag_from_code
+        assert _flag_from_code("NL") == "🇳🇱"
+        assert _flag_from_code("RU") == "🇷🇺"
+        assert _flag_from_code("") == ""
+
+
 class TestHkrCommand:
     @pytest.mark.asyncio
     async def test_returns_formatted_result(self):
