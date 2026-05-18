@@ -9,7 +9,7 @@
     {"name": "Vietnam", "code": "VN"},
     {"name": "South Africa", "code": "ZA"}
   ],
-  "dm_commands": ["woo", "surfr", "hkr", "iksurfmag", "youtube"],
+  "dm_commands": ["woo", "surfr", "hkr", "iksurfmag", "youtube", "instagram", "facebook"],
   "checkwhitelist": true,
   "whitelist_groups": ["-4570601504"],
   "youtube_channels": [
@@ -19,6 +19,12 @@
     "https://www.youtube.com/@New_Generation_KiteContent",
     "https://www.youtube.com/@stevenakkersdijk",
     "https://www.youtube.com/@Prydeclub"
+  ],
+  "instagram_accounts": [
+    "dontpullthebar_official"
+  ],
+  "facebook_pages": [
+    "dontpullthebar"
   ],
   "windguru_spots": [
     {"id": 137635, "name": "Lithuania - Svencele", "tz_offset": 3}
@@ -44,6 +50,16 @@
     },
     {
       "command": "youtube",
+      "recipients": ["main_group"],
+      "cron": "0 * * * *"
+    },
+    {
+      "command": "instagram",
+      "recipients": ["main_group"],
+      "cron": "0 * * * *"
+    },
+    {
+      "command": "facebook",
       "recipients": ["main_group"],
       "cron": "0 * * * *"
     }

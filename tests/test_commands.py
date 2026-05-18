@@ -621,3 +621,125 @@ class TestYoutubeCommand:
         assert issubclass(YoutubeCommand, AbstractNewsCommand)
         assert YoutubeCommand.NAME == "youtube"
         assert isinstance(YoutubeCommand.LABEL, str)
+
+
+# ── InstagramCommand ──────────────────────────────────────────────────────────
+
+class TestInstagramCommand:
+    def test_is_request_command(self):
+        from commands.instagram_command import InstagramCommand
+        from api.abstract_request_command import AbstractRequestCommand
+        assert issubclass(InstagramCommand, AbstractRequestCommand)
+
+    def test_is_news_command(self):
+        from commands.instagram_command import InstagramCommand
+        from api.abstract_news_command import AbstractNewsCommand
+        assert issubclass(InstagramCommand, AbstractNewsCommand)
+
+    def test_has_name_and_label(self):
+        from commands.instagram_command import InstagramCommand
+        assert InstagramCommand.NAME == "instagram"
+        assert InstagramCommand.LABEL
+
+    @pytest.mark.asyncio
+    async def test_run_if_new_returns_none_when_no_accounts(self):
+        from commands.instagram_command import InstagramCommand
+        with patch("commands.instagram_command.load_config", return_value={"instagram_accounts": []}):
+            result = await InstagramCommand().run_if_new()
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_run_if_new_returns_none_when_fetch_fails(self):
+        from commands.instagram_command import InstagramCommand
+        with patch("commands.instagram_command.load_config", return_value={"instagram_accounts": ["test_user"]}), \
+             patch("commands.instagram_command._fetch_latest_post", return_value=None):
+            result = await InstagramCommand().run_if_new()
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_run_if_new_returns_none_when_same_shortcode(self, tmp_path):
+        from commands.instagram_command import InstagramCommand
+        state_file = tmp_path / "instagram_state.json"
+        state_file.write_text('{"test_user": "ABC123"}')
+        fake_post = {"shortcode": "ABC123", "username": "test_user", "caption": "hi",
+                     "is_video": False, "video_url": None, "photos": [],
+                     "post_url": "https://www.instagram.com/p/ABC123/"}
+        with patch("commands.instagram_command._STATE_FILE", str(state_file)), \
+             patch("commands.instagram_command.load_config", return_value={"instagram_accounts": ["test_user"]}), \
+             patch("commands.instagram_command._fetch_latest_post", return_value=fake_post):
+            result = await InstagramCommand().run_if_new()
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_run_if_new_returns_result_when_new_post(self, tmp_path):
+        from commands.instagram_command import InstagramCommand
+        state_file = tmp_path / "instagram_state.json"
+        state_file.write_text('{"test_user": "OLD123"}')
+        fake_post = {"shortcode": "NEW456", "username": "test_user", "caption": "new post",
+                     "is_video": False, "video_url": None, "photos": [],
+                     "post_url": "https://www.instagram.com/p/NEW456/"}
+        with patch("commands.instagram_command._STATE_FILE", str(state_file)), \
+             patch("commands.instagram_command.load_config", return_value={"instagram_accounts": ["test_user"]}), \
+             patch("commands.instagram_command._fetch_latest_post", return_value=fake_post):
+            result = await InstagramCommand().run_if_new()
+        assert result is not None
+
+
+# ── FacebookCommand ───────────────────────────────────────────────────────────
+
+class TestFacebookCommand:
+    def test_is_request_command(self):
+        from commands.facebook_command import FacebookCommand
+        from api.abstract_request_command import AbstractRequestCommand
+        assert issubclass(FacebookCommand, AbstractRequestCommand)
+
+    def test_is_news_command(self):
+        from commands.facebook_command import FacebookCommand
+        from api.abstract_news_command import AbstractNewsCommand
+        assert issubclass(FacebookCommand, AbstractNewsCommand)
+
+    def test_has_name_and_label(self):
+        from commands.facebook_command import FacebookCommand
+        assert FacebookCommand.NAME == "facebook"
+        assert FacebookCommand.LABEL
+
+    @pytest.mark.asyncio
+    async def test_run_if_new_returns_none_when_no_pages(self):
+        from commands.facebook_command import FacebookCommand
+        with patch("commands.facebook_command.load_config", return_value={"facebook_pages": []}):
+            result = await FacebookCommand().run_if_new()
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_run_if_new_returns_none_when_fetch_fails(self):
+        from commands.facebook_command import FacebookCommand
+        with patch("commands.facebook_command.load_config", return_value={"facebook_pages": ["testpage"]}), \
+             patch("commands.facebook_command._fetch_latest_post", return_value=None):
+            result = await FacebookCommand().run_if_new()
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_run_if_new_returns_none_when_same_post_id(self, tmp_path):
+        from commands.facebook_command import FacebookCommand
+        state_file = tmp_path / "facebook_state.json"
+        state_file.write_text('{"testpage": "111"}')
+        fake_post = {"post_id": "111", "page": "testpage", "text": "hi",
+                     "images": [], "video": None, "post_url": ""}
+        with patch("commands.facebook_command._STATE_FILE", str(state_file)), \
+             patch("commands.facebook_command.load_config", return_value={"facebook_pages": ["testpage"]}), \
+             patch("commands.facebook_command._fetch_latest_post", return_value=fake_post):
+            result = await FacebookCommand().run_if_new()
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_run_if_new_returns_result_when_new_post(self, tmp_path):
+        from commands.facebook_command import FacebookCommand
+        state_file = tmp_path / "facebook_state.json"
+        state_file.write_text('{"testpage": "111"}')
+        fake_post = {"post_id": "222", "page": "testpage", "text": "new post",
+                     "images": [], "video": None, "post_url": ""}
+        with patch("commands.facebook_command._STATE_FILE", str(state_file)), \
+             patch("commands.facebook_command.load_config", return_value={"facebook_pages": ["testpage"]}), \
+             patch("commands.facebook_command._fetch_latest_post", return_value=fake_post):
+            result = await FacebookCommand().run_if_new()
+        assert result is not None
