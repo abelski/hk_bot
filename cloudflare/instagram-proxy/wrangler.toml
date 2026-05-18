@@ -1,0 +1,15 @@
+name = "instagram-proxy"
+main = "index.js"
+compatibility_date = "2024-09-23"
+
+# Deploy with:
+#   cd cloudflare/instagram-proxy
+#   npx wrangler deploy
+#
+# Set the secret token (run once after deploy):
+#   npx wrangler secret put PROXY_TOKEN
+#   (enter any random string, e.g. output of: openssl rand -hex 32)
+#
+# Then add to .env on the Pi:
+#   INSTAGRAM_PROXY_URL=https://instagram-proxy.<your-subdomain>.workers.dev
+#   INSTAGRAM_PROXY_TOKEN=<the token you entered above>

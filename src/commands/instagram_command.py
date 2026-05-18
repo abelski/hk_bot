@@ -22,6 +22,8 @@ _IG_HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
     "X-IG-App-ID": "936619743392459",
 }
+_PROXY_URL = os.environ.get("INSTAGRAM_PROXY_URL", "").rstrip("/")
+_PROXY_TOKEN = os.environ.get("INSTAGRAM_PROXY_TOKEN", "")
 
 
 class InstagramCommand(AbstractRequestCommand, AbstractNewsCommand):
@@ -56,12 +58,18 @@ class InstagramCommand(AbstractRequestCommand, AbstractNewsCommand):
 
 
 def _fetch_latest_post(username: str, retries: int = 2) -> dict | None:
+    if _PROXY_URL:
+        url = f"{_PROXY_URL}/?username={username}"
+        headers = {"X-Proxy-Token": _PROXY_TOKEN}
+    else:
+        url = "https://i.instagram.com/api/v1/users/web_profile_info/"
+        headers = _IG_HEADERS
     for attempt in range(retries + 1):
         try:
             r = requests.get(
-                "https://i.instagram.com/api/v1/users/web_profile_info/",
-                params={"username": username},
-                headers=_IG_HEADERS,
+                url,
+                params=None if _PROXY_URL else {"username": username},
+                headers=headers,
                 timeout=15,
             )
             if r.status_code in (429, 401, 403):
