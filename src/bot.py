@@ -188,12 +188,19 @@ async def reload_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 def make_cron_callback(cmd_module, chat_ids: list):
     async def callback(context: ContextTypes.DEFAULT_TYPE) -> None:
-        run_fn = getattr(cmd_module, "run_if_new", cmd_module.run)
-        result = await run_fn()
-        if result is None:
+        run_fn = getattr(cmd_module, "run_if_new", None)
+        if run_fn is None:
+            result = await cmd_module.run()
+            if result is not None:
+                for chat_id in chat_ids:
+                    await _send_result((context.bot, chat_id), result)
             return
-        for chat_id in chat_ids:
-            await _send_result((context.bot, chat_id), result)
+        while True:
+            result = await run_fn()
+            if result is None:
+                break
+            for chat_id in chat_ids:
+                await _send_result((context.bot, chat_id), result)
     return callback
 
 
