@@ -5,3 +5,5 @@ src/__pycache__/
 *.pyc
 .claude/settings.json
 .claude/settings.json
+cloudflare/instagram-proxy/.wrangler/cache/wrangler-account.json
+.claude/settings.json
