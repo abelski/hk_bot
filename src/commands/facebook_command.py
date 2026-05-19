@@ -9,7 +9,7 @@ from facebook_scraper import get_posts
 from api.abstract_request_command import AbstractRequestCommand
 from api.abstract_news_command import AbstractNewsCommand
 from config_loader import load_config
-from helpers.translation_helper import translate_to_russian
+from helpers.rewrite_helper import rewrite_to_russian, strip_hashtags
 
 _STATE_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "../../facebook_state.json"
@@ -79,10 +79,8 @@ def _download_bytes(url: str) -> bytes | None:
 
 
 def _format(data: dict) -> dict:
-    raw = data["text"][:900] if data["text"] else ""
-    caption = translate_to_russian(raw) if raw else ""
-    link = f"\n\n[Facebook]({data['post_url']})" if data["post_url"] else ""
-    text = f"*{data['page']}*\n\n{caption}{link}"
+    raw = strip_hashtags(data["text"][:900]) if data["text"] else ""
+    text = rewrite_to_russian(data["page"], raw) or raw or ""
     if data["video"]:
         video_bytes = _download_bytes(data["video"])
         if video_bytes:

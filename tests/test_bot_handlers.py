@@ -97,7 +97,8 @@ class TestAnswerMention:
         update = _make_update(entities={entity: "@testbot"})
         ctx = _make_context(bot_username="testbot")
         mock_cmd = _make_mock_cmd()
-        with patch("bot.load_commands", return_value=[mock_cmd]), \
+        with patch("bot.ADMIN_ID", 1), \
+             patch("bot.load_commands", return_value=[mock_cmd]), \
              patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer_mention(update, ctx)
         update.effective_message.reply_text.assert_awaited_once()
@@ -123,7 +124,8 @@ class TestAnswerMention:
         update = _make_update(entities={entity: "@TestBot"})
         ctx = _make_context(bot_username="testbot")
         mock_cmd = _make_mock_cmd()
-        with patch("bot.load_commands", return_value=[mock_cmd]), \
+        with patch("bot.ADMIN_ID", 1), \
+             patch("bot.load_commands", return_value=[mock_cmd]), \
              patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer_mention(update, ctx)
         update.effective_message.reply_text.assert_awaited_once()
@@ -135,7 +137,8 @@ class TestAnswerMention:
         update = _make_update(entities={e1: "@testbot", e2: "@testbot"})
         ctx = _make_context(bot_username="testbot")
         mock_cmd = _make_mock_cmd()
-        with patch("bot.load_commands", return_value=[mock_cmd]), \
+        with patch("bot.ADMIN_ID", 1), \
+             patch("bot.load_commands", return_value=[mock_cmd]), \
              patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer_mention(update, ctx)
         assert update.effective_message.reply_text.await_count == 1
@@ -292,7 +295,8 @@ class TestDmCommands:
         ctx = _make_context(bot_username="testbot")
         cmd_woo = _make_mock_cmd(name="woo", label="WOO")
         cmd_hkr = _make_mock_cmd(name="hkr", label="HKR")
-        with patch("bot.load_commands", return_value=[cmd_woo, cmd_hkr]), \
+        with patch("bot.ADMIN_ID", 1), \
+             patch("bot.load_commands", return_value=[cmd_woo, cmd_hkr]), \
              patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer_mention(update, ctx)
         _, kwargs = update.effective_message.reply_text.call_args

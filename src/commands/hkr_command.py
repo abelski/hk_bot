@@ -5,7 +5,7 @@ import time
 import requests
 from api.abstract_request_command import AbstractRequestCommand
 from api.abstract_news_command import AbstractNewsCommand
-from helpers.translation_helper import translate_to_russian
+from helpers.rewrite_helper import rewrite_to_russian
 
 _API_URL = "https://honestkitereviews.com/api/reviews"
 _STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../hkr_state.json")
@@ -51,7 +51,7 @@ def _format(review) -> dict:
     text = (
         f"*{review['productName']}*\n"
         f"Brand: {review.get('brand', '?')} | Type: {review.get('productType', '?')}\n\n"
-        f"{translate_to_russian(review.get('writeUp', ''))}\n\n"
+        f"{rewrite_to_russian(review.get('productName', ''), review.get('writeUp', '')) or review.get('writeUp', '')}\n\n"
         f"Safety: {safety} | Reviewed by {reviewer}"
     )
     photos = []

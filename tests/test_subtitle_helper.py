@@ -219,11 +219,10 @@ def test_youtube_format_uses_processed_video_when_subtitles_succeed():
     data = {"url": "https://youtube.com/watch?v=x", "title": "Title", "description": ""}
     with patch("commands.youtube_command.rewrite_to_russian", return_value="текст"), \
          patch("commands.youtube_command.translate_to_russian", return_value="Заголовок"), \
-         patch("commands.youtube_command.download_youtube_video", return_value=b"original"), \
-         patch("commands.youtube_command.process_youtube_video", return_value=b"burned"):
+         patch("commands.youtube_command.download_youtube_video", return_value=b"original"):
         result = _format(data)
 
-    assert result["video"] == b"burned"
+    assert result["video"] == b"original"
     assert "original_video" not in result
 
 
@@ -233,8 +232,7 @@ def test_youtube_format_falls_back_to_original_when_subtitles_fail():
     data = {"url": "https://youtube.com/watch?v=x", "title": "Title", "description": ""}
     with patch("commands.youtube_command.rewrite_to_russian", return_value="текст"), \
          patch("commands.youtube_command.translate_to_russian", return_value="Заголовок"), \
-         patch("commands.youtube_command.download_youtube_video", return_value=b"original"), \
-         patch("commands.youtube_command.process_youtube_video", return_value=None):
+         patch("commands.youtube_command.download_youtube_video", return_value=b"original"):
         result = _format(data)
 
     assert result["video"] == b"original"

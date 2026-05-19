@@ -136,6 +136,8 @@ async def answer_mention(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     message = update.effective_message
     if not message:
         return
+    if update.effective_user.id != ADMIN_ID:
+        return
     if not await _whitelist_allowed(context.bot, update.effective_user.id, update.effective_chat.id):
         return
     bot_username = context.bot.username

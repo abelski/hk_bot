@@ -8,7 +8,7 @@ import requests
 from api.abstract_request_command import AbstractRequestCommand
 from api.abstract_news_command import AbstractNewsCommand
 from config_loader import load_config
-from helpers.translation_helper import translate_to_russian
+from helpers.rewrite_helper import rewrite_to_russian, strip_hashtags
 
 _STATE_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "../../instagram_state.json"
@@ -122,9 +122,8 @@ def _download_bytes(url: str) -> bytes | None:
 
 
 def _format(data: dict) -> dict:
-    raw = data["caption"][:900] if data["caption"] else ""
-    caption = translate_to_russian(raw) if raw else ""
-    text = f"*@{data['username']}*\n\n{caption}\n\n[Instagram]({data['post_url']})"
+    raw = strip_hashtags(data["caption"][:900]) if data["caption"] else ""
+    text = rewrite_to_russian(data["username"], raw) or raw or ""
     if data["is_video"] and data["video_url"]:
         video_bytes = _download_bytes(data["video_url"])
         if video_bytes:

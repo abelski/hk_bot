@@ -101,6 +101,12 @@ Output: Со стабом 200 Race и фузом 615 работает хорош
 """
 
 
+def strip_hashtags(text: str) -> str:
+    """Remove #hashtag tokens from text."""
+    import re
+    return re.sub(r"#\S+", "", text).strip()
+
+
 def rewrite_to_russian(title: str, text: str) -> str | None:
     """Rewrite article as a short Russian summary via Groq. Returns None on failure."""
     api_key = os.environ.get("GROQ_API_KEY", "")
