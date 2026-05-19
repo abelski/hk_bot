@@ -34,6 +34,7 @@ jobs:
           pct push 100 requirements.txt /root/hk_bot/requirements.txt
           pct exec 100 -- pip3 install -q -r /root/hk_bot/requirements.txt
           pct push 100 config.json /root/hk_bot/config.json
+          pct push 100 src/helpers/rewrite_prompt.txt /root/hk_bot/src/helpers/rewrite_prompt.txt
 
       - name: Restart bot
         run: pct exec 100 -- systemctl restart hk-bot
