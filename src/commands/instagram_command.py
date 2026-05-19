@@ -81,7 +81,10 @@ def _fetch_latest_post(username: str, retries: int = 2) -> dict | None:
             edges = r.json()["data"]["user"]["edge_owner_to_timeline_media"]["edges"]
             if not edges:
                 return None
-            node = edges[0]["node"]
+            node = next(
+                (e["node"] for e in edges if not e["node"].get("pinned_for_users")),
+                edges[0]["node"],
+            )
             shortcode = node["shortcode"]
             is_video = node.get("is_video", False)
             caption_edges = node.get("edge_media_to_caption", {}).get("edges", [])

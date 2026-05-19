@@ -683,6 +683,39 @@ class TestInstagramCommand:
             result = await InstagramCommand().run_if_new()
         assert result is not None
 
+    def test_fetch_latest_post_skips_pinned(self):
+        from commands.instagram_command import _fetch_latest_post
+        pinned_node = {
+            "shortcode": "PINNED1",
+            "is_video": False,
+            "pinned_for_users": [{"id": "123"}],
+            "edge_media_to_caption": {"edges": [{"node": {"text": "pinned"}}]},
+            "display_url": "",
+            "edge_sidecar_to_children": {"edges": []},
+        }
+        new_node = {
+            "shortcode": "NEW123",
+            "is_video": False,
+            "pinned_for_users": [],
+            "edge_media_to_caption": {"edges": [{"node": {"text": "new post"}}]},
+            "display_url": "",
+            "edge_sidecar_to_children": {"edges": []},
+        }
+        api_response = {"data": {"user": {"edge_owner_to_timeline_media": {"edges": [
+            {"node": pinned_node},
+            {"node": new_node},
+        ]}}}}
+        mock_resp = type("R", (), {
+            "status_code": 200,
+            "json": lambda _: api_response,
+            "raise_for_status": lambda _: None,
+        })()
+        with patch("commands.instagram_command.requests.get", return_value=mock_resp), \
+             patch("commands.instagram_command._download_bytes", return_value=b"img"):
+            result = _fetch_latest_post("test_user")
+        assert result is not None
+        assert result["shortcode"] == "NEW123"
+
 
 # ── FacebookCommand ───────────────────────────────────────────────────────────
 
