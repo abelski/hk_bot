@@ -47,7 +47,7 @@ def _split_at_paragraph(text: str, max_len: int = 1024):
 def _build_media(photos: list, caption: str) -> list:
     from io import BytesIO
     media = [InputMediaPhoto(media=BytesIO(p)) for p in photos[:10]]
-    media[0] = InputMediaPhoto(media=BytesIO(photos[0]), caption=caption, parse_mode="Markdown")
+    media[0] = InputMediaPhoto(media=BytesIO(photos[0]), caption=caption)
     return media
 
 
@@ -71,30 +71,30 @@ async def _send_result(bot_or_query, result, *, is_query: bool = False) -> None:
                 await bot_or_query.edit_message_reply_markup(reply_markup=None)
                 await bot_or_query.message.reply_media_group(media)
                 if overflow:
-                    await bot_or_query.message.reply_text(overflow, parse_mode="Markdown")
+                    await bot_or_query.message.reply_text(overflow)
             else:
                 bot, chat_id = bot_or_query
                 await bot.send_media_group(chat_id=chat_id, media=media)
                 if overflow:
-                    await bot.send_message(chat_id=chat_id, text=overflow, parse_mode="Markdown")
+                    await bot.send_message(chat_id=chat_id, text=overflow)
         elif video:
             caption, overflow = _split_at_paragraph(text)
             if is_query:
                 await bot_or_query.edit_message_reply_markup(reply_markup=None)
-                await bot_or_query.message.reply_video(BytesIO(video), caption=caption, parse_mode="Markdown")
+                await bot_or_query.message.reply_video(BytesIO(video), caption=caption)
                 if overflow:
-                    await bot_or_query.message.reply_text(overflow, parse_mode="Markdown")
+                    await bot_or_query.message.reply_text(overflow)
             else:
                 bot, chat_id = bot_or_query
-                await bot.send_video(chat_id=chat_id, video=BytesIO(video), caption=caption, parse_mode="Markdown")
+                await bot.send_video(chat_id=chat_id, video=BytesIO(video), caption=caption)
                 if overflow:
-                    await bot.send_message(chat_id=chat_id, text=overflow, parse_mode="Markdown")
+                    await bot.send_message(chat_id=chat_id, text=overflow)
         else:
             if is_query:
-                await bot_or_query.edit_message_text(text, parse_mode="Markdown")
+                await bot_or_query.edit_message_text(text)
             else:
                 bot, chat_id = bot_or_query
-                await bot.send_message(chat_id=chat_id, text=text, parse_mode="Markdown")
+                await bot.send_message(chat_id=chat_id, text=text)
     else:
         result = _append_footer(result)
         if is_query:
