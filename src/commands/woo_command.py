@@ -1,3 +1,4 @@
+import asyncio
 import time
 import requests
 from datetime import datetime, timezone, timedelta
@@ -38,16 +39,17 @@ class WooCommand(AbstractRequestCommand, AbstractCronCommand):
         top_n = cfg.get("woo_top_limit", 3)
         fetch_limit = cfg.get("woo_fetch_limit", 100)
         countries = cfg.get("woo_countries", [])
-        entries = _fetch_entries(fetch_limit)
+        entries = await asyncio.to_thread(_fetch_entries, fetch_limit)
         if entries is None:
             return "Could not fetch leaderboard, please try again later."
         country_data = {}
         for country in countries:
             code = country["code"]
-            country_data[code] = {
-                "today": _fetch_country_top1(code, days_offset=0),
-                "alltime": _fetch_country_top1(code),
-            }
+            today, alltime = await asyncio.gather(
+                asyncio.to_thread(_fetch_country_top1, code, 0),
+                asyncio.to_thread(_fetch_country_top1, code),
+            )
+            country_data[code] = {"today": today, "alltime": alltime}
         return _format_leaderboard(entries, top_n, countries, country_data)
 
 

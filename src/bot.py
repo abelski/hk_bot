@@ -206,10 +206,17 @@ def make_cron_callback(cmd_module, chat_ids: list):
     return callback
 
 
+async def _watchdog_ping(context: ContextTypes.DEFAULT_TYPE) -> None:
+    import subprocess
+    subprocess.run(["systemd-notify", "WATCHDOG=1"], capture_output=True)
+
+
 def schedule_jobs(app) -> None:
     for job in app.job_queue.jobs():
         if job.name and job.name.startswith("cron_"):
             job.schedule_removal()
+
+    app.job_queue.run_repeating(_watchdog_ping, interval=30, name="watchdog")
 
     config = load_config()
     recipients = config.get("recipients", {})

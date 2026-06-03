@@ -36,6 +36,26 @@ jobs:
           pct push 100 config.json /root/hk_bot/config.json
           pct push 100 src/helpers/rewrite_prompt.txt /root/hk_bot/src/helpers/rewrite_prompt.txt
 
+      - name: Update systemd service
+        run: |
+          pct exec 100 -- bash -c 'cat > /etc/systemd/system/hk-bot.service << "EOF"
+          [Unit]
+          Description=HK Telegram Bot
+          After=network.target
+
+          [Service]
+          WorkingDirectory=/root/hk_bot
+          ExecStart=/usr/bin/python3 /root/hk_bot/src/bot.py
+          Restart=always
+          RestartSec=5
+          WatchdogSec=120
+          EnvironmentFile=/root/hk_bot/.env
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF'
+          pct exec 100 -- systemctl daemon-reload
+
       - name: Restart bot
         run: pct exec 100 -- systemctl restart hk-bot
 
