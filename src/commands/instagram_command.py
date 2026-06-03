@@ -38,7 +38,7 @@ class InstagramCommand(AbstractRequestCommand, AbstractNewsCommand):
             data = await asyncio.to_thread(_fetch_latest_post, username)
             if data is not None:
                 _save_state(username, data["shortcode"])
-                return _format(data)
+                return await asyncio.to_thread(_format, data)
         return "Could not fetch Instagram posts, please try again later."
 
     async def run_if_new(self):
@@ -53,7 +53,7 @@ class InstagramCommand(AbstractRequestCommand, AbstractNewsCommand):
             if data["shortcode"] == state.get(username):
                 continue
             _save_state(username, data["shortcode"])
-            return _format(data)
+            return await asyncio.to_thread(_format, data)
         return None
 
 

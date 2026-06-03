@@ -1,3 +1,4 @@
+import asyncio
 import os
 import json
 import base64
@@ -16,20 +17,20 @@ class HkrCommand(AbstractRequestCommand, AbstractNewsCommand):
     LABEL = "HKR Reviews 🪁"
 
     async def run(self):
-        data = _fetch()
+        data = await asyncio.to_thread(_fetch)
         if data is None:
             return "Could not fetch review, please try again later."
         _save_state(data["id"])
-        return _format(data)
+        return await asyncio.to_thread(_format, data)
 
     async def run_if_new(self):
-        data = _fetch()
+        data = await asyncio.to_thread(_fetch)
         if data is None:
             return None
         if data["id"] == _load_state():
             return None
         _save_state(data["id"])
-        return _format(data)
+        return await asyncio.to_thread(_format, data)
 
 
 def _fetch(retries=2):

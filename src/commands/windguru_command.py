@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import time
@@ -33,7 +34,7 @@ class WindguruCommand(AbstractRequestCommand, AbstractCronCommand):
 
         parts = []
         for spot in spots:
-            data = _fetch(spot["id"])
+            data = await asyncio.to_thread(_fetch, spot["id"])
             if data is None:
                 parts.append(f"🌬️ *{spot['name']}*\nНе удалось получить прогноз.")
                 continue

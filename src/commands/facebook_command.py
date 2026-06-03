@@ -28,7 +28,7 @@ class FacebookCommand(AbstractRequestCommand, AbstractNewsCommand):
             data = await asyncio.to_thread(_fetch_latest_post, page)
             if data is not None:
                 _save_state(page, data["post_id"])
-                return _format(data)
+                return await asyncio.to_thread(_format, data)
         return "Could not fetch Facebook posts, please try again later."
 
     async def run_if_new(self):
@@ -43,7 +43,7 @@ class FacebookCommand(AbstractRequestCommand, AbstractNewsCommand):
             if data["post_id"] == state.get(page):
                 continue
             _save_state(page, data["post_id"])
-            return _format(data)
+            return await asyncio.to_thread(_format, data)
         return None
 
 

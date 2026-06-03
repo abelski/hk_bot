@@ -1,3 +1,4 @@
+import asyncio
 import time
 import requests
 from datetime import datetime, timezone
@@ -16,7 +17,7 @@ class SurfrCommand(AbstractRequestCommand):
     LABEL = "Surfr Leaderboard 🪁"
 
     async def run(self) -> str:
-        entries = _fetch_leaderboard()
+        entries = await asyncio.to_thread(_fetch_leaderboard)
         if entries is None:
             return "Could not fetch leaderboard, please try again later."
         return _format_leaderboard(entries)
