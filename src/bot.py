@@ -3,8 +3,10 @@ Telegram bot — command dispatch via config.json.
 Supports /update (with rollback) and /reload to apply config changes at runtime.
 """
 
+import html
 import logging
 import os
+import re
 import subprocess
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import Application, MessageHandler, CommandHandler, CallbackQueryHandler, filters, ContextTypes
@@ -48,15 +50,22 @@ def _split_at_paragraph(text: str, max_len: int = 1024):
 def _build_media(photos: list, caption: str) -> list:
     from io import BytesIO
     media = [InputMediaPhoto(media=BytesIO(p)) for p in photos[:10]]
-    media[0] = InputMediaPhoto(media=BytesIO(photos[0]), caption=caption)
+    media[0] = InputMediaPhoto(media=BytesIO(photos[0]), caption=caption, parse_mode="HTML")
     return media
+
+
+def _to_html(text: str) -> str:
+    safe = html.escape(text)
+    safe = re.sub(r'\*(.+?)\*', r'<b>\1</b>', safe)
+    return safe
 
 
 def _append_footer(text: str) -> str:
     footer = load_config().get("post_footer", "")
+    safe = _to_html(text)
     if footer:
-        return f"{text}\n\n{footer}"
-    return text
+        return f"{safe}\n\n{footer}"
+    return safe
 
 
 async def _send_result(bot_or_query, result, *, is_query: bool = False) -> None:
@@ -72,37 +81,37 @@ async def _send_result(bot_or_query, result, *, is_query: bool = False) -> None:
                 await bot_or_query.edit_message_reply_markup(reply_markup=None)
                 await bot_or_query.message.reply_media_group(media)
                 if overflow:
-                    await bot_or_query.message.reply_text(overflow)
+                    await bot_or_query.message.reply_text(overflow, parse_mode="HTML")
             else:
                 bot, chat_id = bot_or_query
                 await bot.send_media_group(chat_id=chat_id, media=media)
                 if overflow:
-                    await bot.send_message(chat_id=chat_id, text=overflow)
+                    await bot.send_message(chat_id=chat_id, text=overflow, parse_mode="HTML")
         elif video:
             caption, overflow = _split_at_paragraph(text)
             if is_query:
                 await bot_or_query.edit_message_reply_markup(reply_markup=None)
-                await bot_or_query.message.reply_video(BytesIO(video), caption=caption)
+                await bot_or_query.message.reply_video(BytesIO(video), caption=caption, parse_mode="HTML")
                 if overflow:
-                    await bot_or_query.message.reply_text(overflow)
+                    await bot_or_query.message.reply_text(overflow, parse_mode="HTML")
             else:
                 bot, chat_id = bot_or_query
-                await bot.send_video(chat_id=chat_id, video=BytesIO(video), caption=caption)
+                await bot.send_video(chat_id=chat_id, video=BytesIO(video), caption=caption, parse_mode="HTML")
                 if overflow:
-                    await bot.send_message(chat_id=chat_id, text=overflow)
+                    await bot.send_message(chat_id=chat_id, text=overflow, parse_mode="HTML")
         else:
             if is_query:
-                await bot_or_query.edit_message_text(text)
+                await bot_or_query.edit_message_text(text, parse_mode="HTML")
             else:
                 bot, chat_id = bot_or_query
-                await bot.send_message(chat_id=chat_id, text=text)
+                await bot.send_message(chat_id=chat_id, text=text, parse_mode="HTML")
     else:
         result = _append_footer(result)
         if is_query:
-            await bot_or_query.edit_message_text(result)
+            await bot_or_query.edit_message_text(result, parse_mode="HTML")
         else:
             bot, chat_id = bot_or_query
-            await bot.send_message(chat_id=chat_id, text=result)
+            await bot.send_message(chat_id=chat_id, text=result, parse_mode="HTML")
 
 
 async def _whitelist_allowed(bot, user_id, chat_id) -> bool:
