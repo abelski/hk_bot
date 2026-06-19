@@ -9,7 +9,7 @@
     {"name": "Vietnam", "code": "VN"},
     {"name": "South Africa", "code": "ZA"}
   ],
-  "dm_commands": ["woo", "surfr", "hkr", "iksurfmag", "youtube", "instagram", "facebook"],
+  "dm_commands": ["woo", "surfr", "hkr", "iksurfmag", "youtube", "instagram", "facebook", "kitegirl"],
   "checkwhitelist": true,
   "whitelist_groups": ["-4570601504"],
   "youtube_channels": [
@@ -48,6 +48,31 @@
     "nathalie_lambrecht",
     "hugo.wigglesworth"
   ],
+  "kitegirl_accounts": [
+    "nathalie_lambrecht",
+    "gisela_pulido",
+    "brunakajiya",
+    "moana_pasquini",
+    "valekeisel",
+    "jennyholms",
+    "floryros",
+    "francescabagnoli_kite",
+    "karo_winkowska",
+    "annalottacaudrelier",
+    "lizkruk_kite",
+    "susimai_kite",
+    "paulanovotna_kite",
+    "mathilde_bakker",
+    "claudia.schulz",
+    "alexiafrey_kite",
+    "stephbridge_kite",
+    "flo_kaupert",
+    "sarablixt",
+    "feliciaeden1",
+    "kitegirlsclub",
+    "kitegirls_worldwide",
+    "kitegirlsitalia"
+  ],
   "facebook_pages": [
     "dontpullthebar"
   ],
@@ -85,6 +110,11 @@
     },
     {
       "command": "facebook",
+      "recipients": ["main_group"],
+      "cron": "0 * * * *"
+    },
+    {
+      "command": "kitegirl",
       "recipients": ["main_group"],
       "cron": "0 * * * *"
     }
