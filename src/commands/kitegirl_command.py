@@ -70,7 +70,9 @@ def _fetch_latest_post(username: str, retries: int = 2) -> dict | None:
                 headers=headers,
                 timeout=15,
             )
-            if r.status_code in (429, 401, 403):
+            if r.status_code in (401, 403):
+                return None
+            if r.status_code == 429:
                 if attempt < retries:
                     time.sleep(10 * (attempt + 1))
                     continue
