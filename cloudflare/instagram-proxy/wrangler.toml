@@ -10,6 +10,10 @@ compatibility_date = "2024-09-23"
 #   npx wrangler secret put PROXY_TOKEN
 #   (enter any random string, e.g. output of: openssl rand -hex 32)
 #
+# Set Instagram session cookie (required — Instagram blocks unauthenticated API calls):
+#   npx wrangler secret put IG_SESSION_ID
+#   (paste sessionid cookie value from browser — DevTools > Application > Cookies > instagram.com)
+#
 # Then add to .env on the Pi:
 #   INSTAGRAM_PROXY_URL=https://instagram-proxy.<your-subdomain>.workers.dev
 #   INSTAGRAM_PROXY_TOKEN=<the token you entered above>
