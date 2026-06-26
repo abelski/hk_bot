@@ -24,9 +24,6 @@ _IG_HEADERS = {
 }
 _PROXY_URL = os.environ.get("INSTAGRAM_PROXY_URL", "").rstrip("/")
 _PROXY_TOKEN = os.environ.get("INSTAGRAM_PROXY_TOKEN", "")
-_HASHTAG = "#kiteтетки"
-
-
 class KitegirlCommand(AbstractRequestCommand, AbstractNewsCommand):
     NAME = "kitegirl"
     LABEL = "Kite Girl 🪁"
@@ -36,7 +33,7 @@ class KitegirlCommand(AbstractRequestCommand, AbstractNewsCommand):
         for i, username in enumerate(accounts):
             if i:
                 await asyncio.sleep(3)
-            data = await asyncio.to_thread(_fetch_tagged_post, username)
+            data = await asyncio.to_thread(_fetch_latest_post, username)
             if data is not None:
                 _save_state(username, data["shortcode"])
                 return await asyncio.to_thread(_format, data)
@@ -48,7 +45,7 @@ class KitegirlCommand(AbstractRequestCommand, AbstractNewsCommand):
         for i, username in enumerate(accounts):
             if i:
                 await asyncio.sleep(3)
-            data = await asyncio.to_thread(_fetch_tagged_post, username)
+            data = await asyncio.to_thread(_fetch_latest_post, username)
             if data is None:
                 continue
             if data["shortcode"] == state.get(username):
@@ -58,7 +55,7 @@ class KitegirlCommand(AbstractRequestCommand, AbstractNewsCommand):
         return None
 
 
-def _fetch_tagged_post(username: str, retries: int = 2) -> dict | None:
+def _fetch_latest_post(username: str, retries: int = 2) -> dict | None:
     if _PROXY_URL:
         url = f"{_PROXY_URL}/?username={username}"
         headers = {"X-Proxy-Token": _PROXY_TOKEN}
@@ -82,36 +79,33 @@ def _fetch_tagged_post(username: str, retries: int = 2) -> dict | None:
             edges = r.json()["data"]["user"]["edge_owner_to_timeline_media"]["edges"]
             if not edges:
                 return None
-            for edge in edges:
-                node = edge["node"]
-                if node.get("pinned_for_users"):
-                    continue
-                caption_edges = node.get("edge_media_to_caption", {}).get("edges", [])
-                caption = caption_edges[0]["node"]["text"] if caption_edges else ""
-                if _HASHTAG.lower() not in caption.lower():
-                    continue
-                shortcode = node["shortcode"]
-                is_video = node.get("is_video", False)
-                photos = []
-                if not is_video:
-                    sidecar = node.get("edge_sidecar_to_children", {}).get("edges", [])
-                    if sidecar:
-                        for child in sidecar[:4]:
-                            cn = child["node"]
-                            if not cn.get("is_video"):
-                                photos.append(_download_bytes(cn.get("display_url", "")))
-                    else:
-                        photos.append(_download_bytes(node.get("display_url", "")))
-                return {
-                    "shortcode": shortcode,
-                    "username": username,
-                    "caption": caption,
-                    "is_video": is_video,
-                    "video_url": node.get("video_url") if is_video else None,
-                    "photos": [p for p in photos if p],
-                    "post_url": f"https://www.instagram.com/p/{shortcode}/",
-                }
-            return None
+            node = next(
+                (e["node"] for e in edges if not e["node"].get("pinned_for_users")),
+                edges[0]["node"],
+            )
+            shortcode = node["shortcode"]
+            is_video = node.get("is_video", False)
+            caption_edges = node.get("edge_media_to_caption", {}).get("edges", [])
+            caption = caption_edges[0]["node"]["text"] if caption_edges else ""
+            photos = []
+            if not is_video:
+                sidecar = node.get("edge_sidecar_to_children", {}).get("edges", [])
+                if sidecar:
+                    for child in sidecar[:4]:
+                        cn = child["node"]
+                        if not cn.get("is_video"):
+                            photos.append(_download_bytes(cn.get("display_url", "")))
+                else:
+                    photos.append(_download_bytes(node.get("display_url", "")))
+            return {
+                "shortcode": shortcode,
+                "username": username,
+                "caption": caption,
+                "is_video": is_video,
+                "video_url": node.get("video_url") if is_video else None,
+                "photos": [p for p in photos if p],
+                "post_url": f"https://www.instagram.com/p/{shortcode}/",
+            }
         except Exception:
             if attempt == retries:
                 return None
