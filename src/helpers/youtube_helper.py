@@ -17,7 +17,8 @@ def download_youtube_video(url: str) -> bytes | None:
     with tempfile.TemporaryDirectory() as tmpdir:
         output_path = os.path.join(tmpdir, "video.%(ext)s")
         ydl_opts = {
-            "format": "best[ext=mp4][height<=720]/best[ext=mp4]/best",
+            "format": "bestvideo[height<=720]+bestaudio/best[height<=720]/best",
+            "merge_output_format": "mp4",
             "outtmpl": output_path,
             "quiet": True,
             "no_warnings": True,

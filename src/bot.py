@@ -88,15 +88,20 @@ async def _send_result(bot_or_query, result, *, is_query: bool = False) -> None:
                 if overflow:
                     await bot.send_message(chat_id=chat_id, text=overflow, parse_mode="HTML")
         elif video:
+            from helpers.video_helper import get_video_dimensions
             caption, overflow = _split_at_paragraph(text)
+            dims = get_video_dimensions(video)
+            video_kwargs = {}
+            if dims:
+                video_kwargs["width"], video_kwargs["height"] = dims
             if is_query:
                 await bot_or_query.edit_message_reply_markup(reply_markup=None)
-                await bot_or_query.message.reply_video(BytesIO(video), caption=caption, parse_mode="HTML")
+                await bot_or_query.message.reply_video(BytesIO(video), caption=caption, parse_mode="HTML", supports_streaming=True, **video_kwargs)
                 if overflow:
                     await bot_or_query.message.reply_text(overflow, parse_mode="HTML")
             else:
                 bot, chat_id = bot_or_query
-                await bot.send_video(chat_id=chat_id, video=BytesIO(video), caption=caption, parse_mode="HTML")
+                await bot.send_video(chat_id=chat_id, video=BytesIO(video), caption=caption, parse_mode="HTML", supports_streaming=True, **video_kwargs)
                 if overflow:
                     await bot.send_message(chat_id=chat_id, text=overflow, parse_mode="HTML")
         else:
