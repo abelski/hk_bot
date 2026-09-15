@@ -1,0 +1,20 @@
+name: Dependency Audit
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  push:
+    paths:
+      - requirements.txt
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run pip-audit
+        run: |
+          pip3 install -q pip-audit
+          pip-audit -r requirements.txt

@@ -1,0 +1,46 @@
+name: Deploy to CT {{VMID}}
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write deploy version
+        run: |
+          echo "${{ github.sha }} ${{ github.event.head_commit.message }}" > deploy_version.txt
+          pct push {{VMID}} deploy_version.txt {{BOT_DIR}}/deploy_version.txt
+
+      - name: Write .env to CT {{VMID}}
+        run: |
+          echo "${{ secrets.ENV_FILE }}" > /tmp/{{BOT_NAME}}_env
+          pct push {{VMID}} /tmp/{{BOT_NAME}}_env {{BOT_DIR}}/.env
+          rm /tmp/{{BOT_NAME}}_env
+
+      - name: Sync src to CT {{VMID}}
+        run: |
+          find src -name "*.py" | while read f; do
+            dir=$(dirname "$f")
+            pct exec {{VMID}} -- mkdir -p {{BOT_DIR}}/$dir
+            pct push {{VMID}} "$f" {{BOT_DIR}}/$f
+          done
+          pct push {{VMID}} requirements.txt {{BOT_DIR}}/requirements.txt
+          pct exec {{VMID}} -- pip3 install -q -r {{BOT_DIR}}/requirements.txt
+          pct push {{VMID}} config.json {{BOT_DIR}}/config.json
+
+      - name: Restart bot
+        run: pct exec {{VMID}} -- systemctl restart {{SERVICE_NAME}}
+
+      - name: Verify bot is running
+        run: |
+          for i in $(seq 1 5); do
+            sleep 3
+            status=$(pct exec {{VMID}} -- systemctl is-active {{SERVICE_NAME}})
+            [ "$status" = "active" ] && exit 0
+            echo "Attempt $i: $status"
+          done
+          echo "Service did not become active"; exit 1

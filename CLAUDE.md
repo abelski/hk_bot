@@ -51,6 +51,8 @@ The integration between the bot and MCP server is the main gap left for developm
 - **New dependencies:** Before adding any new tool, library, or external service, ask for consent first.
 - **Unit tests:** Always write unit tests for new or modified logic.
 - **Post-implementation checks:** After every implementation, verify the change works end-to-end (run tests, check logs, manually test the affected behaviour).
+- **Backward compatibility:** Before changing a command or handler's behaviour, check who already depends on it (community users, scheduled jobs, other commands). Prefer additive changes over altering or removing existing behaviour.
+- **Knowledge capture:** If a bug takes real time to diagnose, or something about the server/deploy/API behaves non-obviously, write it to `.claude/server_knowledge.md` so it isn't re-learned.
 do not push anything to git without user consent
 ## Key Integration Pattern
 

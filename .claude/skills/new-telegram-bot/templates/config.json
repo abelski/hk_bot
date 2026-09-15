@@ -1,0 +1,8 @@
+{
+  "post_footer": "",
+  "checkwhitelist": false,
+  "whitelist_groups": [],
+  "dm_commands": ["hello"],
+  "recipients": {},
+  "mappings": []
+}
