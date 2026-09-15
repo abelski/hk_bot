@@ -53,7 +53,10 @@ The integration between the bot and MCP server is the main gap left for developm
 - **Post-implementation checks:** After every implementation, verify the change works end-to-end (run tests, check logs, manually test the affected behaviour).
 - **Backward compatibility:** Before changing a command or handler's behaviour, check who already depends on it (community users, scheduled jobs, other commands). Prefer additive changes over altering or removing existing behaviour.
 - **Knowledge capture:** If a bug takes real time to diagnose, or something about the server/deploy/API behaves non-obviously, write it to `.claude/server_knowledge.md` so it isn't re-learned.
-do not push anything to git without user consent
+- **No duplicate pollers:** Before starting the bot locally, check whether an instance is already running (locally or on the deployed container) — two pollers on the same token race and cause Telegram 409 conflicts.
+- **AI-generated content:** Never assert tests on exact AI-rewritten text (Groq output) — assert on structured effects (which command ran, what was sent, arguments) instead; exact-text assertions break on harmless rewording.
+- **Git safety:** Commit locally whenever useful. Never `git push` without explicit, in-session user consent — a plan calling for a push is not consent. This is also enforced structurally by `.claude/hooks/block-git-push.sh`, not just this rule.
+
 ## Key Integration Pattern
 
 ```python

@@ -43,9 +43,14 @@ I found [specific thing] in [file:line]. This makes [X] ambiguous.
 After all blockers are resolved:
 
 1. **Enter plan mode** using the EnterPlanMode tool.
-2. **Write the plan** to `plans/<feature-name>.md`. Create the directory if needed.
+2. **Write the plan** to `plans/NNNN-<feature-name>.md` — `NNNN` zero-padded, one higher than the
+   highest number already used in `plans/` or `plans/implemented/` (start at `0001`). Create the
+   directory if needed.
 3. **Exit plan mode** using the ExitPlanMode tool.
 4. Tell the user the plan is saved with a clickable markdown link.
+
+Once every checklist item below is done and verified, move the plan file (same name) to
+`plans/implemented/` so active and finished plans don't mix.
 
 ---
 
@@ -68,7 +73,7 @@ Answers the user gave that shaped this plan, with the original question for cont
 - ...
 
 ## Acceptance Criteria
-Concrete, testable: "Given X, when Y, then Z."
+Concrete, testable checklist items: `- [ ] Given X, when Y, then Z.`
 
 ## Affected Files
 | File | Lines | Change type | Reason |
@@ -78,9 +83,9 @@ Concrete, testable: "Given X, when Y, then Z."
 
 ## Implementation Steps
 
-Each step must be independently testable and contain enough detail that the implementer never needs to open a browser or read a doc.
+Each step must be independently testable and contain enough detail that the implementer never needs to open a browser or read a doc. Check each step's box (`- [x]`) the moment it is done and verified — live, during implementation, never in one batch at the end. If a session is interrupted, this file is the source of truth for what's left.
 
-### Step N: <Title>
+### - [ ] Step N: <Title>
 
 **Goal:** One sentence.
 
