@@ -372,6 +372,16 @@ class TestIksurfmagCommand:
             result = _format(data)
         assert "переведено" in result["text"]
 
+    def test_format_drops_body_when_translation_fails(self):
+        from commands.iksurfmag_command import _format
+        data = {"url": "https://iksurfmag.com/news/1", "title": "English Title",
+                "text": "English body", "image": None}
+        with patch("commands.iksurfmag_command.rewrite_to_russian", return_value=None), \
+             patch("commands.iksurfmag_command.translate_to_russian", side_effect=lambda t: t):
+            result = _format(data)
+        assert "English body" not in result["text"]
+        assert result["text"].count("English Title") == 1
+
     def test_format_falls_back_to_url_when_download_fails(self):
         from commands.iksurfmag_command import _format
         data = {"url": "https://iksurfmag.com/news/1", "title": "Title", "text": "Body",
@@ -620,6 +630,36 @@ class TestYoutubeCommand:
         assert issubclass(YoutubeCommand, AbstractNewsCommand)
         assert YoutubeCommand.NAME == "youtube"
         assert isinstance(YoutubeCommand.LABEL, str)
+
+    def test_format_drops_body_when_translation_fails(self):
+        from commands.youtube_command import _format
+        data = {"url": "u", "title": "English Title", "description": "English description", "channel": "C"}
+        with patch("commands.youtube_command.rewrite_to_russian", return_value=None), \
+             patch("commands.youtube_command.translate_to_russian", side_effect=lambda t: t), \
+             patch("commands.youtube_command.download_youtube_video", return_value=None):
+            result = _format(data)
+        assert "English description" not in result["text"]
+        assert result["text"].count("English Title") == 1
+
+    def test_format_uses_translation_when_rewrite_fails(self):
+        from commands.youtube_command import _format
+        translations = {"English Title": "Русский заголовок", "English description": "Русское описание"}
+        data = {"url": "u", "title": "English Title", "description": "English description", "channel": "C"}
+        with patch("commands.youtube_command.rewrite_to_russian", return_value=None), \
+             patch("commands.youtube_command.translate_to_russian", side_effect=lambda t: translations.get(t, t)), \
+             patch("commands.youtube_command.download_youtube_video", return_value=None):
+            result = _format(data)
+        assert "Русское описание" in result["text"]
+        assert "English" not in result["text"]
+
+    def test_format_omits_body_when_no_description(self):
+        from commands.youtube_command import _format
+        data = {"url": "u", "title": "English Title", "description": "", "channel": "C"}
+        with patch("commands.youtube_command.rewrite_to_russian", return_value=None), \
+             patch("commands.youtube_command.translate_to_russian", side_effect=lambda t: "Русский заголовок"), \
+             patch("commands.youtube_command.download_youtube_video", return_value=None):
+            result = _format(data)
+        assert result["text"] == "*Русский заголовок*\n\nu"
 
 
 # ── InstagramCommand ──────────────────────────────────────────────────────────

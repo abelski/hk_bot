@@ -3,7 +3,7 @@ import pathlib
 import requests
 
 _API_URL = "https://api.groq.com/openai/v1/chat/completions"
-_MODEL = "llama-3.3-70b-versatile"
+_MODEL = "openai/gpt-oss-120b"
 _PROMPT_FILE = pathlib.Path(__file__).parent / "rewrite_prompt.txt"
 
 def _load_system_prompt() -> str:
@@ -40,7 +40,10 @@ def rewrite_to_russian(title: str, text: str) -> str | None:
                     {"role": "system", "content": _SYSTEM_PROMPT},
                     {"role": "user", "content": prompt[:4000]},
                 ],
-                "max_tokens": 400,
+                "max_tokens": 600,
+                # gpt-oss is a reasoning model: without this it spends the whole
+                # token budget on hidden reasoning and returns empty content.
+                "reasoning_effort": "low",
             },
             timeout=30,
         )

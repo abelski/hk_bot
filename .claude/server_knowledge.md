@@ -45,3 +45,17 @@ ssh root@192.168.0.31 "pct exec 100 -- journalctl -u hk-bot -n 50 --no-pager"
 - Official Proxmox Debian 12 template is amd64-only, won't work on this arm64 Pi
 - Proxmox REST API has no exec endpoint for LXC — must use `pct exec` via SSH
 - `download_url` API endpoint returns 501 on this Proxmox version — use `aplinfo.post()` to download templates
+
+## Groq API (rewrite_helper.py)
+- Groq retires models without notice. `llama-3.3-70b-versatile` was silently removed
+  (404 `model_not_found`), which made every `rewrite_to_russian()` call return None for
+  an unknown period — posts degraded to raw MyMemory translation with nobody noticing,
+  because the helper swallows all exceptions. Check `GET /openai/v1/models` when rewrite
+  quality suddenly drops. As of 2026-09 no Llama chat models remain on Groq.
+- `openai/gpt-oss-*` are reasoning models: they spend `max_tokens` on hidden reasoning
+  first and return `content: ""` with `finish_reason: "length"` if the budget runs out.
+  Must send `reasoning_effort: "low"` and keep `max_tokens` ≥ ~600, or every rewrite
+  comes back empty (which looks identical to an API failure downstream).
+- Cloudflare in front of api.groq.com rejects urllib's default User-Agent with
+  403 `error code: 1010`. `requests` works; plain `urllib` needs an explicit UA header.
+- Free tier rate-limits quickly on reasoning models — space out batch test calls ~15s.

@@ -86,9 +86,12 @@ def _format(data: dict) -> dict:
     rewritten = rewrite_to_russian(data["title"], data["description"])
     if rewritten is None:
         excerpt = data["description"][:500] if data["description"] else ""
-        rewritten = translate_to_russian(excerpt) if excerpt else data["title"]
+        translated = translate_to_russian(excerpt) if excerpt else ""
+        # translate_to_russian returns its input unchanged on failure — drop the
+        # body rather than posting untranslated English under a Russian title.
+        rewritten = translated if translated != excerpt else ""
     title_ru = translate_to_russian(data["title"]) or data["title"]
-    text = f"*{title_ru}*\n\n{rewritten}"
+    text = f"*{title_ru}*" + (f"\n\n{rewritten}" if rewritten else "")
     video_bytes = download_youtube_video(data["url"])
     if video_bytes:
         return {"text": text, "video": video_bytes}
