@@ -10,11 +10,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The runner host's Python is PEP 668 externally-managed, so system-wide
+      # pip3 install refuses to run. Keep the venv outside the workspace so it
+      # survives checkout cleaning and isn't reinstalled on every push.
       - name: Install dependencies
-        run: pip3 install -q -r requirements.txt pytest pytest-asyncio
+        run: |
+          [ -d /root/ci-venv ] || python3 -m venv /root/ci-venv
+          /root/ci-venv/bin/pip install -q -r requirements.txt pytest pytest-asyncio
 
       - name: Run tests
-        run: python3 -m pytest tests/ -q
+        run: /root/ci-venv/bin/python -m pytest tests/ -q
 
   deploy:
     needs: test
