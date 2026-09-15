@@ -44,6 +44,19 @@ Two main components:
 
 The integration between the bot and MCP server is the main gap left for development — the bot handlers need to call `ProxmoxMCPServer` methods and format responses for Telegram.
 
+## Planning workflow
+
+For anything bigger than a one-line fix: `/feature_analyst <request>` clarifies scope, writes a
+numbered checklist plan to `plans/NNNN-<slug>.md`, and on approval hands off to `/ralph-implement`
+— a bounded, resumable loop that implements, runs validation, and retries failures up to a budget
+before marking the plan `blocked` for a human. Optional add-ons: `ralph-reviewer` (read-only diff
+review between implementation and validation — not wired in by default), `uat-tester` (black-box
+verification of a command via direct invocation, no codebase access), `spec-writer` (unused until
+this project adopts a `specs/` convention). `triage`/`fix-issue-from-triage` do the same for a
+backlog of reported issues once a tracker is plugged in (asks which one on first use). A trivial
+change (typo, one-line fix with an obvious cause) skips this — plan overhead should never exceed
+the change itself.
+
 ## Development Rules
 
 - **Minimal changes:** Make the smallest possible change that achieves the goal. Avoid refactoring surrounding code.
@@ -56,6 +69,7 @@ The integration between the bot and MCP server is the main gap left for developm
 - **No duplicate pollers:** Before starting the bot locally, check whether an instance is already running (locally or on the deployed container) — two pollers on the same token race and cause Telegram 409 conflicts.
 - **AI-generated content:** Never assert tests on exact AI-rewritten text (Groq output) — assert on structured effects (which command ran, what was sent, arguments) instead; exact-text assertions break on harmless rewording.
 - **Git safety:** Commit locally whenever useful. Never `git push` without explicit, in-session user consent — a plan calling for a push is not consent. This is also enforced structurally by `.claude/hooks/block-git-push.sh`, not just this rule.
+- **Skill/agent authoring:** New commands, skills, or agents live in this project's own `.claude/`, never `~/.claude/`. Convention: [docs/skill-authoring.md](docs/skill-authoring.md). Heavier patterns not yet adopted here: [docs/patterns.md](docs/patterns.md).
 
 ## Key Integration Pattern
 
