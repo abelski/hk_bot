@@ -7,3 +7,4 @@ src/__pycache__/
 .claude/settings.json
 cloudflare/instagram-proxy/.wrangler/cache/wrangler-account.json
 .claude/settings.json
+.venv/
