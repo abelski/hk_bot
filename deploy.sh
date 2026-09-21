@@ -60,6 +60,7 @@ ssh "$HOST" "
   pct exec $VMID -- mkdir -p $BOT_DIR
   pct exec $VMID -- tar xzf /tmp/deploy.tar.gz -C $BOT_DIR
   pct exec $VMID -- rm /tmp/deploy.tar.gz
+  pct exec $VMID -- pip3 install -q -r $BOT_DIR/requirements.txt
   pct exec $VMID -- bash -c 'cat > /etc/systemd/system/$SERVICE.service << EOF
 [Unit]
 Description=$DESCRIPTION

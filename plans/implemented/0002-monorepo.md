@@ -1,6 +1,6 @@
 ---
 kind: feature
-status: in_progress
+status: done
 iteration: 1
 max_iterations: 30
 suggested_model: opus
@@ -175,9 +175,9 @@ hk_bot/
       (`src/__pycache__/` не ловит подкаталоги). Перенести `hk_guard/.claude/server_knowledge.md`
       разделом в местный.
 - [x] 19. `.claude/skills/run-hk-bot/smoke.sh` — на пакетный запуск обоих ботов.
-- [ ] 20. Выкатка: `bash deploy.sh guard`, затем `bash deploy.sh news`. Модератор первым —
+- [x] 20. Выкатка: `bash deploy.sh guard`, затем `bash deploy.sh news`. Модератор первым —
       он дешевле в откате, и его успех подтверждает, что схема запуска рабочая.
-- [ ] 21. Архивировать историю модератора: `git -C ~/Documents/src/hk_guard bundle create
+- [x] 21. Архивировать историю модератора: `git -C ~/Documents/src/hk_guard bundle create
       ~/Documents/src/hk_guard-history.bundle --all`, проверить `git bundle verify`, и только
       после успешной проверки удалить каталог. Бандл обязателен: remote у `hk_guard` нет,
       его шесть коммитов существуют только локально.
