@@ -2,8 +2,8 @@ import asyncio
 import time
 import requests
 from datetime import datetime, timezone, timedelta
-from api.abstract_request_command import AbstractRequestCommand
-from api.abstract_cron_command import AbstractCronCommand
+from src.news.api.abstract_request_command import AbstractRequestCommand
+from src.news.api.abstract_cron_command import AbstractCronCommand
 
 API_URL = "https://aky7qgzp1g.execute-api.us-east-1.amazonaws.com/v2/leaderboards/"
 HEADERS = {
@@ -34,7 +34,7 @@ class WooCommand(AbstractRequestCommand, AbstractCronCommand):
     LABEL = "WOO Leaderboard 🏄"
 
     async def run(self) -> str:
-        from config_loader import load_config
+        from src.shared.config_loader import load_config
         cfg = load_config()
         top_n = cfg.get("woo_top_limit", 3)
         fetch_limit = cfg.get("woo_fetch_limit", 100)

@@ -1,19 +1,19 @@
 import asyncio
-import os
 import json
 import re
 import time
 import requests
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
-from api.abstract_request_command import AbstractRequestCommand
-from api.abstract_news_command import AbstractNewsCommand
-from helpers.rewrite_helper import rewrite_to_russian
-from helpers.translation_helper import translate_to_russian
-from helpers.youtube_helper import download_youtube_video
+from src.news.api.abstract_request_command import AbstractRequestCommand
+from src.news.api.abstract_news_command import AbstractNewsCommand
+from src.news.helpers.rewrite_helper import rewrite_to_russian
+from src.news.helpers.translation_helper import translate_to_russian
+from src.news.helpers.youtube_helper import download_youtube_video
+from src.shared.paths import ROOT
 
 _RSS_URL = "https://www.iksurfmag.com/kitesurfing-news/feed/"
-_STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../iksurfmag_state.json")
+_STATE_FILE = ROOT / "iksurfmag_state.json"
 _HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; kitesurf-bot/1.0)"}
 _NS = {
     "content": "http://purl.org/rss/1.0/modules/content/",

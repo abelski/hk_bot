@@ -1,12 +1,12 @@
 ---
 kind: feature
-status: approved
-iteration: 0
+status: in_progress
+iteration: 1
 max_iterations: 30
 suggested_model: opus
 suggested_effort: high
-confirmed_model: null
-confirmed_effort: null
+confirmed_model: opus
+confirmed_effort: high
 ---
 
 # 0002 — Монорепо: src/news, src/guard, src/shared
@@ -133,48 +133,48 @@ hk_bot/
 
 ## Implementation
 
-- [ ] 1. `src/shared/{__init__,paths}.py` — `ROOT = Path(__file__).resolve().parents[2]`.
-- [ ] 2. `src/shared/config_loader.py` — из `src/config_loader.py`, путь через `ROOT`.
-- [ ] 3. `src/{__init__,news/__init__,guard/__init__}.py` — пустые маркеры; корневой `conftest.py`.
-- [ ] 4. `git mv` `src/bot.py` → `src/news/bot.py`; `src/{api,commands,helpers}` → `src/news/`.
-- [ ] 5. Все внутренние импорты → пакетные. Не забыть два ленивых импорта внутри функций:
+- [x] 1. `src/shared/{__init__,paths}.py` — `ROOT = Path(__file__).resolve().parents[2]`.
+- [x] 2. `src/shared/config_loader.py` — из `src/config_loader.py`, путь через `ROOT`.
+- [x] 3. `src/{__init__,news/__init__,guard/__init__}.py` — пустые маркеры; корневой `conftest.py`.
+- [x] 4. `git mv` `src/bot.py` → `src/news/bot.py`; `src/{api,commands,helpers}` → `src/news/`.
+- [x] 5. Все внутренние импорты → пакетные. Не забыть два ленивых импорта внутри функций:
       `helpers.video_helper` в `bot.py` и `config_loader` в методе `woo_command.py`.
-- [ ] 6. `src/news/commands/__init__.py` — префикс из `__name__` в обоих местах.
-- [ ] 7. Шесть команд с состоянием → `ROOT / "<name>_state.json"`.
-- [ ] 8. `windguru_command.py` — удалить свой `_CONFIG_PATH`, звать общий загрузчик.
-- [ ] 9. `src/news/bot.py` — удалить `/update`, `update_callback`, `_rollback`, `BOT_SCRIPT`,
+- [x] 6. `src/news/commands/__init__.py` — префикс из `__name__` в обоих местах.
+- [x] 7. Шесть команд с состоянием → `ROOT / "<name>_state.json"`.
+- [x] 8. `windguru_command.py` — удалить свой `_CONFIG_PATH`, звать общий загрузчик.
+- [x] 9. `src/news/bot.py` — удалить `/update`, `update_callback`, `_rollback`, `BOT_SCRIPT`,
       `BOT_BACKUP`, `BOT_REPO_URL` и регистрацию хендлеров. Мёртвый код: `/root/hk_bot` не
       git-клон. `/reload` остаётся.
-- [ ] 10. `src/news/bot.py` `main()` — падать, если в конфиге нет `mappings`.
-- [ ] 11. Перенести из `hk_guard`: `src/bot.py` → `src/guard/bot.py`,
+- [x] 10. `src/news/bot.py` `main()` — падать, если в конфиге нет `mappings`.
+- [x] 11. Перенести из `hk_guard`: `src/bot.py` → `src/guard/bot.py`,
       `src/moderation.py` → `src/guard/moderation.py`, `config.json` → `config.guard.json`.
       Скаффолд (`api/`, `commands/`, `helpers/`, `hello_command.py`, `config_loader.py`) не брать.
-- [ ] 12. `src/guard/bot.py` — вычистить неиспользуемое: `load_commands`, `_show_commands`,
+- [x] 12. `src/guard/bot.py` — вычистить неиспользуемое: `load_commands`, `_show_commands`,
       `command_callback`, `answer`, `answer_mention`, `_send_result`, `_build_media`,
       `_split_at_paragraph`, `_append_footer`, cron-планировщик, `/update`. Оставить `moderate`,
       `_scannable_text`, `_is_exempt`, `_is_anonymous_admin`, `_delete_notice`, `on_startup`,
       `/reload`, `main()`. Падать в `main()`, если нет ключа `moderation`.
-- [ ] 13. `requirements.guard.txt` — только `python-telegram-bot[job-queue]==21.7` и
+- [x] 13. `requirements.guard.txt` — только `python-telegram-bot[job-queue]==21.7` и
       `python-dotenv==1.0.1`. У CT 101 256МБ RAM и 4ГБ диска, `faster-whisper` туда нельзя.
-- [ ] 14. Тесты: уникальные basename, убрать **все** `sys.path.insert`, импорты и строки
+- [x] 14. Тесты: уникальные basename, убрать **все** `sys.path.insert`, импорты и строки
       `mock.patch` на пакетные, починить `test_video_helper.py`, перенести тесты модератора,
       их конфиг → `config.guard.json`.
-- [ ] 15. Новый тест: каталог файла состояния каждой команды равен корню репозитория —
+- [x] 15. Новый тест: каталог файла состояния каждой команды равен корню репозитория —
       механическая защита от перепоста бэклога.
-- [ ] 16. `deploy.sh` — принимает `news|guard`, пушит `src/__init__.py` + `src/shared/` +
+- [x] 16. `deploy.sh` — принимает `news|guard`, пушит `src/__init__.py` + `src/shared/` +
       `src/<bot>/` + свой конфиг и requirements, **пишет свой systemd-юнит** с новым `ExecStart`,
       рестартует сервис, печатает `is-active`. Для guard конфиг кладётся как `config.json`.
-- [ ] 17. `.github/workflows/deploy.yml` — привести к новой раскладке: `ExecStart` на
+- [x] 17. `.github/workflows/deploy.yml` — привести к новой раскладке: `ExecStart` на
       `-m src.news.bot`, `find` по `src/shared src/news` с `-o -name '*.txt'` вместо отдельного
       шага для `rewrite_prompt.txt`, `src/__init__.py` явной строкой, `paths:`-фильтр на
       новостной бот. Секреты не трогаем.
-- [ ] 18. Документация: `CLAUDE.md` (секция Architecture вдобавок описывает несуществующий
+- [x] 18. Документация: `CLAUDE.md` (секция Architecture вдобавок описывает несуществующий
       Proxmox-MCP — переписать под реальность), `README.md`, `specs/*.md`,
       `.claude/skills/{run-hk-bot,tune-prompt,feature_analyst}/`, `.claude/commands/*.md`,
       `.claude/settings.json` (allowlist с `src/bot.py`), `.gitignore`
       (`src/__pycache__/` не ловит подкаталоги). Перенести `hk_guard/.claude/server_knowledge.md`
       разделом в местный.
-- [ ] 19. `.claude/skills/run-hk-bot/smoke.sh` — на пакетный запуск обоих ботов.
+- [x] 19. `.claude/skills/run-hk-bot/smoke.sh` — на пакетный запуск обоих ботов.
 - [ ] 20. Выкатка: `bash deploy.sh guard`, затем `bash deploy.sh news`. Модератор первым —
       он дешевле в откате, и его успех подтверждает, что схема запуска рабочая.
 - [ ] 21. Архивировать историю модератора: `git -C ~/Documents/src/hk_guard bundle create
@@ -202,10 +202,16 @@ hk_bot/
 
 ## Definition of Done
 
+Локальный интерпретатор — `.venv/bin/python` (у системного `python3` нет зависимостей).
+
+Эталон до переезда: **127 тестов, 9 команд** (`facebook hkr iksurfmag instagram kitegirl
+surfr windguru woo youtube`). После переезда тестов должно стать больше (приедут ~47 от
+модератора), а команд — ровно 9.
+
 ```bash
-python3 -m pytest tests/ -q
-python3 -c "import src.news.bot, src.guard.bot"
-python3 -c "from src.news.commands import load_commands; assert len(load_commands()) == 9, len(load_commands())"
+.venv/bin/python -m pytest tests/ -q
+.venv/bin/python -c "import src.news.bot, src.guard.bot"
+.venv/bin/python -c "from src.news.commands import load_commands; assert len(load_commands()) == 9, len(load_commands())"
 test -z "$(git status --porcelain -- '*_state.json')"
 ! grep -rn "sys.path.insert" tests/ src/
 ```

@@ -19,9 +19,10 @@ Before planning, identify any ambiguities in the feature/bugfix request in `$ARG
 
 ## Phase 2 — Explore, then write the plan (in planning mode)
 
-Call the `EnterPlanMode` tool to enter planning mode, then explore the codebase (`src/commands/`,
-`src/api/`, `src/helpers/`, `tests/`) to understand affected files, existing patterns, and
-dependencies — reuse what's already there before proposing something new.
+Call the `EnterPlanMode` tool to enter planning mode, then explore the codebase (`src/news/commands/`,
+`src/news/api/`, `src/news/helpers/`, `src/guard/`, `src/shared/`, `tests/`) to understand affected
+files, existing patterns, and dependencies — reuse what's already there before proposing something
+new.
 
 Create the plan file at `plans/NNNN-<slug>.md` — `NNNN` zero-padded, one higher than the highest
 number already used across `plans/` and `plans/implemented/` (create both directories if they
@@ -207,6 +208,7 @@ Once `ralph-implement` reports the plan done:
 ## Notes
 
 - Keep solutions simple — no over-engineering, no new dependency without asking first.
-- Follow existing code conventions in this repo (`src/commands/` and `src/api/` base classes).
+- Follow existing code conventions in this repo (`src/news/commands/` and `src/news/api/` base
+  classes for the news bot; `src/shared/` for anything both bots need).
 - Do not push to git without an explicit directive from the user —
   `.claude/hooks/block-git-push.sh` enforces the push half structurally; commits are fine.

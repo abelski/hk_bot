@@ -1,7 +1,8 @@
 import json
-import os
 
-_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config.json")
+from src.shared.paths import ROOT
+
+_CONFIG_PATH = ROOT / "config.json"
 
 
 def load_config() -> dict:

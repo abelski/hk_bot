@@ -4,15 +4,15 @@ description: Finetune the rewriting prompt by collecting a before/after example,
 allowed-tools: Read, Edit, Write, Bash, AskUserQuestion, TodoWrite
 ---
 
-You are a prompt engineer specializing in tone-matching and style transfer prompts. Your goal is to improve `src/helpers/rewrite_prompt.txt` by collecting a real failure example from the user, diagnosing exactly what went wrong, and applying targeted prompt engineering fixes — then testing and showing the result.
+You are a prompt engineer specializing in tone-matching and style transfer prompts. Your goal is to improve `src/news/helpers/rewrite_prompt.txt` by collecting a real failure example from the user, diagnosing exactly what went wrong, and applying targeted prompt engineering fixes — then testing and showing the result.
 
-The prompt lives in `src/helpers/rewrite_prompt.txt` and is loaded at bot startup. `rewrite_helper.py` reads it via `_load_system_prompt()` — do not touch `rewrite_helper.py` during tuning sessions.
+The prompt lives in `src/news/helpers/rewrite_prompt.txt` and is loaded at bot startup. `rewrite_helper.py` reads it via `_load_system_prompt()` — do not touch `rewrite_helper.py` during tuning sessions. This only affects the news bot; the guard bot has no rewrite pipeline.
 
 ## Process
 
 ### Phase 1 — Read current prompt
 
-Read `src/helpers/rewrite_prompt.txt` in full. Understand every rule. Note the current examples section.
+Read `src/news/helpers/rewrite_prompt.txt` in full. Understand every rule. Note the current examples section.
 
 ### Phase 2 — Collect the failure example
 
@@ -94,7 +94,7 @@ Ask the user two questions in one `AskUserQuestion` call:
    - Options: "Yes, push to server (SSH + restart)" / "No, I'll push manually"
 
 **If user says apply locally:**
-- Write the full updated prompt to `src/helpers/rewrite_prompt.txt` using the Write tool
+- Write the full updated prompt to `src/news/helpers/rewrite_prompt.txt` using the Write tool
 - Delete `_tune_test.py`
 - Run the existing tests: `python3 -m pytest tests/ -x -q`
 - Report pass/fail
@@ -102,8 +102,8 @@ Ask the user two questions in one `AskUserQuestion` call:
 **If user also says push to server:**
 - Copy the file to the server and restart the bot:
   ```bash
-  scp src/helpers/rewrite_prompt.txt root@192.168.0.31:/tmp/rewrite_prompt.txt
-  ssh root@192.168.0.31 "pct push 100 /tmp/rewrite_prompt.txt /root/hk_bot/src/helpers/rewrite_prompt.txt && pct exec 100 -- systemctl restart hk-bot && sleep 2 && pct exec 100 -- systemctl is-active hk-bot"
+  scp src/news/helpers/rewrite_prompt.txt root@192.168.0.31:/tmp/rewrite_prompt.txt
+  ssh root@192.168.0.31 "pct push 100 /tmp/rewrite_prompt.txt /root/hk_bot/src/news/helpers/rewrite_prompt.txt && pct exec 100 -- systemctl restart hk-bot && sleep 2 && pct exec 100 -- systemctl is-active hk-bot"
   ```
 - Report the service status (active/failed)
 

@@ -1,7 +1,7 @@
 # iksurfmag
 
 Posts the latest article from IKSurfMag's kitesurfing news RSS feed.
-`src/commands/iksurfmag_command.py`. Uses the shared [rewrite pipeline](rewrite-pipeline.md).
+`src/news/commands/iksurfmag_command.py`. Uses the shared [rewrite pipeline](rewrite-pipeline.md).
 
 | | |
 |---|---|

@@ -2,7 +2,7 @@ import asyncio
 import time
 import requests
 from datetime import datetime, timezone
-from api.abstract_request_command import AbstractRequestCommand
+from src.news.api.abstract_request_command import AbstractRequestCommand
 
 BASE_URL = "https://spot.thesurfr.app/api/proxy"
 

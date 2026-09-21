@@ -1,6 +1,6 @@
 import time
 import requests
-from helpers.abstract_helper import AbstractHelper
+from src.news.helpers.abstract_helper import AbstractHelper
 
 _API_URL = "https://api.mymemory.translated.net/get"
 _MAX_CHARS = 500

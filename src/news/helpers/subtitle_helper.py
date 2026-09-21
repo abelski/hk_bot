@@ -4,7 +4,7 @@ import re
 import subprocess
 import tempfile
 
-from helpers.translation_helper import translate_to_russian
+from src.news.helpers.translation_helper import translate_to_russian
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 def process_youtube_video(url: str, video_bytes: bytes) -> bytes | None:
     """Extract subtitles (or transcribe), translate to Russian, burn into video.
     Returns processed video bytes, or None if any step fails."""
-    from helpers.youtube_helper import extract_subtitles_vtt
+    from src.news.helpers.youtube_helper import extract_subtitles_vtt
     srt = None
     logger.info("subtitle: extracting vtt from %s", url)
     vtt = extract_subtitles_vtt(url)

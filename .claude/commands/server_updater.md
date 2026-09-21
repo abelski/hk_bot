@@ -28,7 +28,7 @@ If the user says no, stop.
 
 **Step 2 — Backup**
 ```bash
-ssh root@192.168.0.31 "pct exec 100 -- cp /root/hk_bot/src/bot.py /root/hk_bot/src/bot.py.bak"
+ssh root@192.168.0.31 "pct exec 100 -- cp -r /root/hk_bot/src/news /root/hk_bot/src/news.bak"
 ```
 
 **Step 3 — Deploy**
@@ -53,7 +53,7 @@ If the service is not running or logs show errors → go to rollback.
 
 **Step 6 — Rollback (on any error)**
 ```bash
-ssh root@192.168.0.31 "pct exec 100 -- cp /root/hk_bot/src/bot.py.bak /root/hk_bot/src/bot.py"
+ssh root@192.168.0.31 "pct exec 100 -- rm -rf /root/hk_bot/src/news && pct exec 100 -- mv /root/hk_bot/src/news.bak /root/hk_bot/src/news"
 ssh root@192.168.0.31 "pct exec 100 -- systemctl restart hk-bot"
 ```
 Then inform the user what went wrong.

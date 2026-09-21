@@ -1,19 +1,17 @@
 import asyncio
-import os
 import json
 
 import yt_dlp
 
-from api.abstract_request_command import AbstractRequestCommand
-from api.abstract_news_command import AbstractNewsCommand
-from config_loader import load_config
-from helpers.rewrite_helper import rewrite_to_russian
-from helpers.translation_helper import translate_to_russian
-from helpers.youtube_helper import download_youtube_video
+from src.news.api.abstract_request_command import AbstractRequestCommand
+from src.news.api.abstract_news_command import AbstractNewsCommand
+from src.shared.config_loader import load_config
+from src.news.helpers.rewrite_helper import rewrite_to_russian
+from src.news.helpers.translation_helper import translate_to_russian
+from src.news.helpers.youtube_helper import download_youtube_video
+from src.shared.paths import ROOT
 
-_STATE_FILE = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "../../youtube_state.json"
-)
+_STATE_FILE = ROOT / "youtube_state.json"
 
 
 class YoutubeCommand(AbstractRequestCommand, AbstractNewsCommand):

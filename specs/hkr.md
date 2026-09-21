@@ -1,7 +1,7 @@
 # hkr
 
 Posts the latest gear review from Honest Kite Reviews.
-`src/commands/hkr_command.py`. Uses the shared [rewrite pipeline](rewrite-pipeline.md).
+`src/news/commands/hkr_command.py`. Uses the shared [rewrite pipeline](rewrite-pipeline.md).
 
 | | |
 |---|---|

@@ -1,7 +1,7 @@
 # youtube
 
 Posts the latest video from a configured list of kitesurfing YouTube channels.
-`src/commands/youtube_command.py`. Uses the shared [rewrite pipeline](rewrite-pipeline.md).
+`src/news/commands/youtube_command.py`. Uses the shared [rewrite pipeline](rewrite-pipeline.md).
 
 | | |
 |---|---|

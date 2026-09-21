@@ -5,14 +5,13 @@ import time
 
 import requests
 
-from api.abstract_request_command import AbstractRequestCommand
-from api.abstract_news_command import AbstractNewsCommand
-from config_loader import load_config
-from helpers.rewrite_helper import rewrite_to_russian, strip_hashtags
+from src.news.api.abstract_request_command import AbstractRequestCommand
+from src.news.api.abstract_news_command import AbstractNewsCommand
+from src.shared.config_loader import load_config
+from src.news.helpers.rewrite_helper import rewrite_to_russian, strip_hashtags
+from src.shared.paths import ROOT
 
-_STATE_FILE = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "../../kitegirl_state.json"
-)
+_STATE_FILE = ROOT / "instagram_state.json"
 _IG_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
@@ -24,12 +23,14 @@ _IG_HEADERS = {
 }
 _PROXY_URL = os.environ.get("INSTAGRAM_PROXY_URL", "").rstrip("/")
 _PROXY_TOKEN = os.environ.get("INSTAGRAM_PROXY_TOKEN", "")
-class KitegirlCommand(AbstractRequestCommand, AbstractNewsCommand):
-    NAME = "kitegirl"
-    LABEL = "Kite Girl 🪁"
+
+
+class InstagramCommand(AbstractRequestCommand, AbstractNewsCommand):
+    NAME = "instagram"
+    LABEL = "Instagram 📸"
 
     async def run(self):
-        accounts = load_config().get("kitegirl_accounts", [])
+        accounts = load_config().get("instagram_accounts", [])
         for i, username in enumerate(accounts):
             if i:
                 await asyncio.sleep(3)
@@ -37,10 +38,10 @@ class KitegirlCommand(AbstractRequestCommand, AbstractNewsCommand):
             if data is not None:
                 _save_state(username, data["shortcode"])
                 return await asyncio.to_thread(_format, data)
-        return "No kite girl posts found."
+        return "Could not fetch Instagram posts, please try again later."
 
     async def run_if_new(self):
-        accounts = load_config().get("kitegirl_accounts", [])
+        accounts = load_config().get("instagram_accounts", [])
         state = _load_state()
         for i, username in enumerate(accounts):
             if i:

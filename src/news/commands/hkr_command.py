@@ -1,15 +1,15 @@
 import asyncio
-import os
 import json
 import base64
 import time
 import requests
-from api.abstract_request_command import AbstractRequestCommand
-from api.abstract_news_command import AbstractNewsCommand
-from helpers.rewrite_helper import rewrite_to_russian
+from src.news.api.abstract_request_command import AbstractRequestCommand
+from src.news.api.abstract_news_command import AbstractNewsCommand
+from src.news.helpers.rewrite_helper import rewrite_to_russian
+from src.shared.paths import ROOT
 
 _API_URL = "https://honestkitereviews.com/api/reviews"
-_STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../hkr_state.json")
+_STATE_FILE = ROOT / "hkr_state.json"
 
 
 class HkrCommand(AbstractRequestCommand, AbstractNewsCommand):

@@ -11,9 +11,9 @@ Per-source specs: [youtube](youtube.md) · [iksurfmag](iksurfmag.md) ·
 
 | File | Role |
 |---|---|
-| `src/helpers/rewrite_helper.py` | Stylised rewrite into Russian via Groq |
-| `src/helpers/rewrite_prompt.txt` | System prompt defining the channel's voice |
-| `src/helpers/translation_helper.py` | Literal fallback translation via MyMemory |
+| `src/news/helpers/rewrite_helper.py` | Stylised rewrite into Russian via Groq |
+| `src/news/helpers/rewrite_prompt.txt` | System prompt defining the channel's voice |
+| `src/news/helpers/translation_helper.py` | Literal fallback translation via MyMemory |
 
 ## External services
 

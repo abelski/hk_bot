@@ -1,13 +1,9 @@
 """
-Unit tests for src/config_loader.py.
+Unit tests for src/shared/config_loader.py.
 """
 
 import json
-import os
-import sys
 import pytest
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 
 class TestLoadConfig:
@@ -16,7 +12,7 @@ class TestLoadConfig:
         config_file = tmp_path / "config.json"
         config_file.write_text(json.dumps(cfg))
 
-        import config_loader
+        import src.shared.config_loader as config_loader
         original = config_loader._CONFIG_PATH
         config_loader._CONFIG_PATH = str(config_file)
         try:
@@ -29,7 +25,7 @@ class TestLoadConfig:
         assert result["mappings"][0]["cron"] == "0 23 * * *"
 
     def test_returns_empty_mappings_when_file_missing(self, tmp_path):
-        import config_loader
+        import src.shared.config_loader as config_loader
         original = config_loader._CONFIG_PATH
         config_loader._CONFIG_PATH = str(tmp_path / "nonexistent.json")
         try:
@@ -49,7 +45,7 @@ class TestLoadConfig:
         config_file = tmp_path / "config.json"
         config_file.write_text(json.dumps(cfg))
 
-        import config_loader
+        import src.shared.config_loader as config_loader
         original = config_loader._CONFIG_PATH
         config_loader._CONFIG_PATH = str(config_file)
         try:

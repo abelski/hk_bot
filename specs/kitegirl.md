@@ -1,7 +1,7 @@
 # kitegirl
 
 Posts the latest post from a configured list of female-rider Instagram accounts.
-`src/commands/kitegirl_command.py`. Uses the shared [rewrite pipeline](rewrite-pipeline.md).
+`src/news/commands/kitegirl_command.py`. Uses the shared [rewrite pipeline](rewrite-pipeline.md).
 
 | | |
 |---|---|

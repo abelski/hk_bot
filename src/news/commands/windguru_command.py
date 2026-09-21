@@ -1,13 +1,11 @@
 import asyncio
-import json
-import os
 import time
 import requests
 from datetime import datetime, timedelta, timezone
-from api.abstract_request_command import AbstractRequestCommand
-from api.abstract_cron_command import AbstractCronCommand
+from src.news.api.abstract_request_command import AbstractRequestCommand
+from src.news.api.abstract_cron_command import AbstractCronCommand
+from src.shared.config_loader import load_config
 
-_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "config.json")
 _SPOT_PAGE_URL = "https://www.windguru.cz/{spot_id}"
 _API_URL = "https://www.windguru.net/int/iapi.php"
 _HEADERS = {
@@ -49,11 +47,7 @@ class WindguruCommand(AbstractRequestCommand, AbstractCronCommand):
 
 
 def _load_spots():
-    try:
-        with open(_CONFIG_PATH) as f:
-            return json.load(f).get("windguru_spots", [])
-    except Exception:
-        return []
+    return load_config().get("windguru_spots", [])
 
 
 def _fetch(spot_id, retries=2):

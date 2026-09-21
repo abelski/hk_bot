@@ -1,7 +1,7 @@
 # facebook
 
 Posts the latest post from a configured list of Facebook pages.
-`src/commands/facebook_command.py`. Uses the shared [rewrite pipeline](rewrite-pipeline.md).
+`src/news/commands/facebook_command.py`. Uses the shared [rewrite pipeline](rewrite-pipeline.md).
 
 | | |
 |---|---|

@@ -1,19 +1,9 @@
 """
-Unit tests for bot handlers in src/bot.py.
+Unit tests for bot handlers in src/news/bot.py.
 """
 
-import sys
-import os
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-
-# ---------------------------------------------------------------------------
-# Minimal stubs so bot.py can be imported without real credentials or
-# the telegram package initialising network connections.
-# ---------------------------------------------------------------------------
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -51,13 +41,13 @@ def _make_mock_cmd(name="woo", label="WOO Leaderboard 🏄"):
 class TestAnswer:
     @pytest.mark.asyncio
     async def test_shows_command_list(self):
-        from bot import answer
+        from src.news.bot import answer
         update = _make_update(user_id=42)
         ctx = _make_context()
         mock_cmd = _make_mock_cmd()
-        with patch("bot.ADMIN_ID", 42), \
-             patch("bot.load_commands", return_value=[mock_cmd]), \
-             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
+        with patch("src.news.bot.ADMIN_ID", 42), \
+             patch("src.news.bot.load_commands", return_value=[mock_cmd]), \
+             patch("src.news.bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer(update, ctx)
         update.effective_message.reply_text.assert_awaited_once()
         args, kwargs = update.effective_message.reply_text.call_args
@@ -66,21 +56,21 @@ class TestAnswer:
 
     @pytest.mark.asyncio
     async def test_shows_empty_keyboard_when_no_commands(self):
-        from bot import answer
+        from src.news.bot import answer
         update = _make_update(user_id=42)
         ctx = _make_context()
-        with patch("bot.ADMIN_ID", 42), \
-             patch("bot.load_commands", return_value=[]), \
-             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
+        with patch("src.news.bot.ADMIN_ID", 42), \
+             patch("src.news.bot.load_commands", return_value=[]), \
+             patch("src.news.bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer(update, ctx)
         update.effective_message.reply_text.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_ignores_non_admin_in_dm(self):
-        from bot import answer
+        from src.news.bot import answer
         update = _make_update(user_id=999)
         ctx = _make_context()
-        with patch("bot.ADMIN_ID", 42):
+        with patch("src.news.bot.ADMIN_ID", 42):
             await answer(update, ctx)
         update.effective_message.reply_text.assert_not_called()
 
@@ -92,14 +82,14 @@ class TestAnswer:
 class TestAnswerMention:
     @pytest.mark.asyncio
     async def test_responds_when_bot_is_mentioned(self):
-        from bot import answer_mention
+        from src.news.bot import answer_mention
         entity = MagicMock()
         update = _make_update(entities={entity: "@testbot"})
         ctx = _make_context(bot_username="testbot")
         mock_cmd = _make_mock_cmd()
-        with patch("bot.ADMIN_ID", 1), \
-             patch("bot.load_commands", return_value=[mock_cmd]), \
-             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
+        with patch("src.news.bot.ADMIN_ID", 1), \
+             patch("src.news.bot.load_commands", return_value=[mock_cmd]), \
+             patch("src.news.bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer_mention(update, ctx)
         update.effective_message.reply_text.assert_awaited_once()
         args, _ = update.effective_message.reply_text.call_args
@@ -107,49 +97,49 @@ class TestAnswerMention:
 
     @pytest.mark.asyncio
     async def test_silent_when_other_user_mentioned(self):
-        from bot import answer_mention
+        from src.news.bot import answer_mention
         entity = MagicMock()
         update = _make_update(entities={entity: "@otherusername"})
         ctx = _make_context(bot_username="testbot")
-        with patch("bot.load_commands") as mock_load, \
-             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
+        with patch("src.news.bot.load_commands") as mock_load, \
+             patch("src.news.bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer_mention(update, ctx)
         mock_load.assert_not_called()
         update.effective_message.reply_text.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_case_insensitive_username_match(self):
-        from bot import answer_mention
+        from src.news.bot import answer_mention
         entity = MagicMock()
         update = _make_update(entities={entity: "@TestBot"})
         ctx = _make_context(bot_username="testbot")
         mock_cmd = _make_mock_cmd()
-        with patch("bot.ADMIN_ID", 1), \
-             patch("bot.load_commands", return_value=[mock_cmd]), \
-             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
+        with patch("src.news.bot.ADMIN_ID", 1), \
+             patch("src.news.bot.load_commands", return_value=[mock_cmd]), \
+             patch("src.news.bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer_mention(update, ctx)
         update.effective_message.reply_text.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_responds_only_once_when_mentioned_twice(self):
-        from bot import answer_mention
+        from src.news.bot import answer_mention
         e1, e2 = MagicMock(), MagicMock()
         update = _make_update(entities={e1: "@testbot", e2: "@testbot"})
         ctx = _make_context(bot_username="testbot")
         mock_cmd = _make_mock_cmd()
-        with patch("bot.ADMIN_ID", 1), \
-             patch("bot.load_commands", return_value=[mock_cmd]), \
-             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
+        with patch("src.news.bot.ADMIN_ID", 1), \
+             patch("src.news.bot.load_commands", return_value=[mock_cmd]), \
+             patch("src.news.bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer_mention(update, ctx)
         assert update.effective_message.reply_text.await_count == 1
 
     @pytest.mark.asyncio
     async def test_silent_when_no_message(self):
-        from bot import answer_mention
+        from src.news.bot import answer_mention
         update = MagicMock()
         update.effective_message = None
         ctx = _make_context()
-        with patch("bot.load_commands") as mock_load:
+        with patch("src.news.bot.load_commands") as mock_load:
             await answer_mention(update, ctx)
         mock_load.assert_not_called()
 
@@ -160,7 +150,7 @@ class TestAnswerMention:
 
 class TestScheduleJobs:
     def test_schedules_known_command(self):
-        import bot
+        import src.news.bot as bot
         mock_cmd = MagicMock()
         mock_cmd.NAME = "woo"
         mock_app = MagicMock()
@@ -169,15 +159,15 @@ class TestScheduleJobs:
             "recipients": {"main_group": "-100111"},
             "mappings": [{"command": "woo", "recipients": ["main_group"], "cron": "0 23 * * *"}],
         }
-        with patch("bot.load_config", return_value=config), \
-             patch("bot.load_commands", return_value=[mock_cmd]):
+        with patch("src.news.bot.load_config", return_value=config), \
+             patch("src.news.bot.load_commands", return_value=[mock_cmd]):
             bot.schedule_jobs(mock_app)
         mock_app.job_queue.run_custom.assert_called_once()
         _, kwargs = mock_app.job_queue.run_custom.call_args
         assert kwargs["name"] == "cron_woo_0"
 
     def test_skips_mapping_without_cron(self):
-        import bot
+        import src.news.bot as bot
         mock_cmd = MagicMock()
         mock_cmd.NAME = "woo"
         mock_app = MagicMock()
@@ -186,26 +176,26 @@ class TestScheduleJobs:
             "recipients": {"main_group": "-100111"},
             "mappings": [{"command": "woo", "recipients": ["main_group"]}],
         }
-        with patch("bot.load_config", return_value=config), \
-             patch("bot.load_commands", return_value=[mock_cmd]):
+        with patch("src.news.bot.load_config", return_value=config), \
+             patch("src.news.bot.load_commands", return_value=[mock_cmd]):
             bot.schedule_jobs(mock_app)
         mock_app.job_queue.run_custom.assert_not_called()
 
     def test_skips_unknown_command(self):
-        import bot
+        import src.news.bot as bot
         mock_app = MagicMock()
         mock_app.job_queue.jobs.return_value = []
         config = {
             "recipients": {"main_group": "-100111"},
             "mappings": [{"command": "unknown", "recipients": ["main_group"], "cron": "0 23 * * *"}],
         }
-        with patch("bot.load_config", return_value=config), \
-             patch("bot.load_commands", return_value=[]):
+        with patch("src.news.bot.load_config", return_value=config), \
+             patch("src.news.bot.load_commands", return_value=[]):
             bot.schedule_jobs(mock_app)
         mock_app.job_queue.run_custom.assert_not_called()
 
     def test_skips_unknown_recipient(self):
-        import bot
+        import src.news.bot as bot
         mock_cmd = MagicMock()
         mock_cmd.NAME = "woo"
         mock_app = MagicMock()
@@ -214,13 +204,13 @@ class TestScheduleJobs:
             "recipients": {},
             "mappings": [{"command": "woo", "recipients": ["unknown_group"], "cron": "0 23 * * *"}],
         }
-        with patch("bot.load_config", return_value=config), \
-             patch("bot.load_commands", return_value=[mock_cmd]):
+        with patch("src.news.bot.load_config", return_value=config), \
+             patch("src.news.bot.load_commands", return_value=[mock_cmd]):
             bot.schedule_jobs(mock_app)
         mock_app.job_queue.run_custom.assert_not_called()
 
     def test_sends_to_multiple_recipients(self):
-        import bot
+        import src.news.bot as bot
         mock_cmd = MagicMock()
         mock_cmd.NAME = "woo"
         mock_app = MagicMock()
@@ -229,8 +219,8 @@ class TestScheduleJobs:
             "recipients": {"group_a": "-100111", "group_b": "-100222"},
             "mappings": [{"command": "woo", "recipients": ["group_a", "group_b"], "cron": "0 23 * * *"}],
         }
-        with patch("bot.load_config", return_value=config), \
-             patch("bot.load_commands", return_value=[mock_cmd]):
+        with patch("src.news.bot.load_config", return_value=config), \
+             patch("src.news.bot.load_commands", return_value=[mock_cmd]):
             bot.schedule_jobs(mock_app)
         mock_app.job_queue.run_custom.assert_called_once()
         callback_fn = mock_app.job_queue.run_custom.call_args[0][0]
@@ -238,13 +228,13 @@ class TestScheduleJobs:
         assert callable(callback_fn)
 
     def test_cancels_existing_cron_jobs_before_rescheduling(self):
-        import bot
+        import src.news.bot as bot
         existing_job = MagicMock()
         existing_job.name = "cron_woo_0"
         mock_app = MagicMock()
         mock_app.job_queue.jobs.return_value = [existing_job]
-        with patch("bot.load_config", return_value={"mappings": []}), \
-             patch("bot.load_commands", return_value=[]):
+        with patch("src.news.bot.load_config", return_value={"mappings": []}), \
+             patch("src.news.bot.load_commands", return_value=[]):
             bot.schedule_jobs(mock_app)
         existing_job.schedule_removal.assert_called_once()
 
@@ -256,16 +246,16 @@ class TestScheduleJobs:
 class TestDmCommands:
     @pytest.mark.asyncio
     async def test_dm_shows_only_configured_commands(self):
-        from bot import answer
+        from src.news.bot import answer
         update = _make_update(user_id=42)
         ctx = _make_context()
         cmd_woo = _make_mock_cmd(name="woo", label="WOO")
         cmd_hkr = _make_mock_cmd(name="hkr", label="HKR")
         config = {"dm_commands": ["woo"]}
-        with patch("bot.ADMIN_ID", 42), \
-             patch("bot.load_commands", return_value=[cmd_woo, cmd_hkr]), \
-             patch("bot.load_config", return_value=config), \
-             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
+        with patch("src.news.bot.ADMIN_ID", 42), \
+             patch("src.news.bot.load_commands", return_value=[cmd_woo, cmd_hkr]), \
+             patch("src.news.bot.load_config", return_value=config), \
+             patch("src.news.bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer(update, ctx)
         _, kwargs = update.effective_message.reply_text.call_args
         labels = [btn[0].text for btn in kwargs["reply_markup"].inline_keyboard]
@@ -273,15 +263,15 @@ class TestDmCommands:
 
     @pytest.mark.asyncio
     async def test_dm_shows_all_when_dm_commands_absent(self):
-        from bot import answer
+        from src.news.bot import answer
         update = _make_update(user_id=42)
         ctx = _make_context()
         cmd_woo = _make_mock_cmd(name="woo", label="WOO")
         cmd_hkr = _make_mock_cmd(name="hkr", label="HKR")
-        with patch("bot.ADMIN_ID", 42), \
-             patch("bot.load_commands", return_value=[cmd_woo, cmd_hkr]), \
-             patch("bot.load_config", return_value={}), \
-             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
+        with patch("src.news.bot.ADMIN_ID", 42), \
+             patch("src.news.bot.load_commands", return_value=[cmd_woo, cmd_hkr]), \
+             patch("src.news.bot.load_config", return_value={}), \
+             patch("src.news.bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer(update, ctx)
         _, kwargs = update.effective_message.reply_text.call_args
         labels = [btn[0].text for btn in kwargs["reply_markup"].inline_keyboard]
@@ -289,15 +279,15 @@ class TestDmCommands:
 
     @pytest.mark.asyncio
     async def test_group_mention_still_shows_all_commands(self):
-        from bot import answer_mention
+        from src.news.bot import answer_mention
         entity = MagicMock()
         update = _make_update(entities={entity: "@testbot"})
         ctx = _make_context(bot_username="testbot")
         cmd_woo = _make_mock_cmd(name="woo", label="WOO")
         cmd_hkr = _make_mock_cmd(name="hkr", label="HKR")
-        with patch("bot.ADMIN_ID", 1), \
-             patch("bot.load_commands", return_value=[cmd_woo, cmd_hkr]), \
-             patch("bot._whitelist_allowed", new=AsyncMock(return_value=True)):
+        with patch("src.news.bot.ADMIN_ID", 1), \
+             patch("src.news.bot.load_commands", return_value=[cmd_woo, cmd_hkr]), \
+             patch("src.news.bot._whitelist_allowed", new=AsyncMock(return_value=True)):
             await answer_mention(update, ctx)
         _, kwargs = update.effective_message.reply_text.call_args
         labels = [btn[0].text for btn in kwargs["reply_markup"].inline_keyboard]
@@ -306,19 +296,19 @@ class TestDmCommands:
 
 class TestAppendFooter:
     def test_appends_footer_when_configured(self):
-        import bot
-        with patch("bot.load_config", return_value={"post_footer": "hetekite | t.me/hatekite"}):
+        import src.news.bot as bot
+        with patch("src.news.bot.load_config", return_value={"post_footer": "hetekite | t.me/hatekite"}):
             result = bot._append_footer("Some post text")
         assert result == "Some post text\n\nhetekite | t.me/hatekite"
 
     def test_no_footer_when_empty_string(self):
-        import bot
-        with patch("bot.load_config", return_value={"post_footer": ""}):
+        import src.news.bot as bot
+        with patch("src.news.bot.load_config", return_value={"post_footer": ""}):
             result = bot._append_footer("Some post text")
         assert result == "Some post text"
 
     def test_no_footer_when_key_missing(self):
-        import bot
-        with patch("bot.load_config", return_value={}):
+        import src.news.bot as bot
+        with patch("src.news.bot.load_config", return_value={}):
             result = bot._append_footer("Some post text")
         assert result == "Some post text"

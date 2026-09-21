@@ -1,19 +1,17 @@
 import asyncio
-import os
 import json
 import time
 
 import requests
 from facebook_scraper import get_posts
 
-from api.abstract_request_command import AbstractRequestCommand
-from api.abstract_news_command import AbstractNewsCommand
-from config_loader import load_config
-from helpers.rewrite_helper import rewrite_to_russian, strip_hashtags
+from src.news.api.abstract_request_command import AbstractRequestCommand
+from src.news.api.abstract_news_command import AbstractNewsCommand
+from src.shared.config_loader import load_config
+from src.news.helpers.rewrite_helper import rewrite_to_russian, strip_hashtags
+from src.shared.paths import ROOT
 
-_STATE_FILE = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "../../facebook_state.json"
-)
+_STATE_FILE = ROOT / "facebook_state.json"
 
 
 class FacebookCommand(AbstractRequestCommand, AbstractNewsCommand):

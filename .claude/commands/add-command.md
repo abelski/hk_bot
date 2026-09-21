@@ -17,8 +17,8 @@ Ask only genuine blockers. If the user's description already answers something c
 
 Launch Explore subagents in parallel to collect everything needed before writing the plan:
 
-- Read `src/commands/woo_command.py` — the canonical example (fetch, format, NAME/LABEL/run pattern)
-- Read `src/commands/__init__.py` — how discovery works
+- Read `src/news/commands/woo_command.py` — the canonical example (fetch, format, NAME/LABEL/run pattern)
+- Read `src/news/commands/__init__.py` — how discovery works
 - Read `config.json` — current recipients and mappings
 - Read `tests/test_commands.py` — test pattern to follow
 
@@ -54,7 +54,7 @@ Each implementation step must be independently testable and contain enough detai
 
 After plan approval:
 
-1. Create `src/commands/<name>_command.py` following the rules below.
+1. Create `src/news/commands/<name>_command.py` following the rules below.
 2. If cron is needed, add the mapping to `config.json`.
 3. Add tests to `tests/test_commands.py`.
 4. Run `python3 -m pytest tests/ -v` — all tests must pass before finishing.
@@ -63,7 +63,7 @@ After plan approval:
 
 ## Command file rules
 
-**Location:** `src/commands/<name>_command.py`
+**Location:** `src/news/commands/<name>_command.py`
 **Naming:** snake_case, always suffixed with `_command`.
 
 Every module **must** expose exactly:
@@ -79,7 +79,7 @@ All other functions are private (prefix with `_`). Do not import from other comm
 **Template:**
 
 ```python
-# src/commands/<name>_command.py
+# src/news/commands/<name>_command.py
 
 NAME = "<name>"
 LABEL = "<Button Label>"
@@ -101,7 +101,7 @@ def _format(data) -> str:
     ...
 ```
 
-**Auto-discovery:** `src/commands/__init__.py` scans the package with `pkgutil.iter_modules`. No registration needed — dropping the file is enough. A module is loaded only if it has `NAME`, `LABEL`, and `run`.
+**Auto-discovery:** `src/news/commands/__init__.py` scans the package with `pkgutil.iter_modules`. No registration needed — dropping the file is enough. A module is loaded only if it has `NAME`, `LABEL`, and `run`.
 
 ---
 
@@ -133,27 +133,27 @@ def _format(data) -> str:
 class Test<Name>Command:
     @pytest.mark.asyncio
     async def test_returns_formatted_result(self):
-        from commands.<name>_command import run
-        with patch("commands.<name>_command._fetch", return_value=<mock_data>), \
-             patch("commands.<name>_command._format", return_value="formatted"):
+        from src.news.commands.<name>_command import run
+        with patch("src.news.commands.<name>_command._fetch", return_value=<mock_data>), \
+             patch("src.news.commands.<name>_command._format", return_value="formatted"):
             result = await run()
         assert result == "formatted"
 
     @pytest.mark.asyncio
     async def test_returns_error_when_fetch_fails(self):
-        from commands.<name>_command import run
-        with patch("commands.<name>_command._fetch", return_value=None):
+        from src.news.commands.<name>_command import run
+        with patch("src.news.commands.<name>_command._fetch", return_value=None):
             result = await run()
         assert "Could not fetch" in result
 
     def test_has_required_interface(self):
-        import commands.<name>_command as cmd
+        import src.news.commands.<name>_command as cmd
         assert isinstance(cmd.NAME, str)
         assert isinstance(cmd.LABEL, str)
         assert callable(cmd.run)
 ```
 
-**Canonical example:** `src/commands/woo_command.py`
+**Canonical example:** `src/news/commands/woo_command.py`
 
 ---
 

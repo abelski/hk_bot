@@ -34,7 +34,7 @@ rewrite pipeline.
 ## Destination
 
 Posts go to the recipients named in `config.json: mappings` — currently `main_group` for every
-command. `_append_footer` in `src/bot.py` appends `config.json: post_footer` to every outgoing
+command. `_append_footer` in `src/news/bot.py` appends `config.json: post_footer` to every outgoing
 post, currently a link to [HateKite](https://t.me/hatekite).
 
 ## Overlapping sources
