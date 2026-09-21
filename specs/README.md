@@ -2,6 +2,9 @@
 
 Living descriptions of current behaviour, one file per component.
 
+This repo holds two bots. Unless a section says otherwise, it describes the **news** bot
+(`src/news/`); the [guard](guard.md) bot is separate, with its own token, config and container.
+
 ## News sources
 
 Each command fetches from one kind of source, rewrites it through the shared
@@ -36,6 +39,15 @@ rewrite pipeline.
 Posts go to the recipients named in `config.json: mappings` — currently `main_group` for every
 command. `_append_footer` in `src/news/bot.py` appends `config.json: post_footer` to every outgoing
 post, currently a link to [HateKite](https://t.me/hatekite).
+
+## Moderation
+
+| Spec | Watches | Configured in | Acts by |
+|---|---|---|---|
+| [guard](guard.md) | every group text/caption message | `config.guard.json` → `moderation` | deleting and/or warning |
+
+Runs as its own bot in its own container, so it needs admin rights to delete where the news bot
+does not. No state file — it holds nothing between messages.
 
 ## Overlapping sources
 
