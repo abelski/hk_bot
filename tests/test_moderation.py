@@ -182,6 +182,23 @@ class TestLiveConfig:
         for link in ["заходи t.me/+abcdef", "t.me/joinchat/AAAA", "смотри bit.ly/xyz"]:
             assert find_action(link, rules) == ("delete", "спам-ссылка"), link
 
+    def test_dm_lure_spam_is_caught(self):
+        rules = self._live_rules()
+        spam = [
+            "Недавно ехал за рулем слушал книгу «Время - деньги». Понравилась тем что она нас "
+            "учит относиться ко времени и деньгам не как к бесконечному ресурсу. Есть аудио - "
+            "могу переслать. Пишите в личку, перешлю бесплатно💯",
+            "прочитал отличную книгу, кому надо пишите в лс",
+        ]
+        for text in spam:
+            assert find_action(text, rules) == ("delete", "спам: заманивание в личку"), text
+
+    def test_dm_lure_keeps_normal_dm_requests(self):
+        rules = self._live_rules()
+        for text in ["продаю доску 140, пишите в личку", "отдам трапец бесплатно, пишите в лс",
+                     "перешлю прогноз позже", "кто едет на спот? напишите в личные"]:
+            assert find_action(text, rules) is None, text
+
 
 class TestCompileCache:
     def test_same_config_returns_cached_object(self):

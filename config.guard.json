@@ -21,6 +21,12 @@
         "regex": ["t\\.me/\\+", "t\\.me/joinchat/", "\\bbit\\.ly/", "\\btinyurl\\.com/", "\\bclck\\.ru/"],
         "action": "delete",
         "reason": "спам-ссылка"
+      },
+      {
+        "name": "spam-dm-lure",
+        "regex": ["^(?=.*\\bв (?:личк|лс\\b|личн))(?=.*(?:перешл|пересла|книг))"],
+        "action": "delete",
+        "reason": "спам: заманивание в личку"
       }
     ]
   }
