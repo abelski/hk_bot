@@ -7,7 +7,7 @@ import re
 logger = logging.getLogger(__name__)
 
 # Severity ladder: when several rules match one message, the highest rank wins.
-ACTIONS = {"warn": 1, "delete": 2, "delete_warn": 3}
+ACTIONS = {"warn": 1, "delete": 2, "delete_warn": 3, "delete_ban": 4}
 _MAX_RANK = max(ACTIONS.values())
 
 _ZERO_WIDTH = dict.fromkeys(map(ord, "​‌‍⁠﻿"), None)

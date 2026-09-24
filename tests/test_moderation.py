@@ -195,7 +195,7 @@ class TestLiveConfig:
             "наконец дослушал. Кому интересно, пишите, перешлю)💯",
         ]
         for text in spam:
-            assert find_action(text, rules) == ("delete_warn", "спамер-книголюб 📚"), text
+            assert find_action(text, rules) == ("delete_ban", "спамер-книголюб 📚 — тут таким не рады"), text
 
     def test_dm_lure_keeps_normal_dm_requests(self):
         rules = self._live_rules()

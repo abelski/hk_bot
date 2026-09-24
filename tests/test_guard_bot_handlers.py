@@ -55,6 +55,7 @@ def _make_context(status="member"):
     notice.message_id = 999
     ctx.bot.send_message = AsyncMock(return_value=notice)
     ctx.job_queue.run_once = MagicMock()
+    ctx.bot.ban_chat_member = AsyncMock()
     return ctx
 
 
@@ -239,3 +240,34 @@ class TestModerateWarnings:
         with patch("src.guard.bot.load_config", return_value=_config()), patch("src.guard.bot.ADMIN_ID", 1):
             await moderate(update, ctx)
         assert "Вася" in ctx.bot.send_message.call_args.kwargs["text"]
+
+
+class TestModerateBan:
+    BAN = [{"name": "lure", "regex": ["перешлю"], "action": "delete_ban", "reason": "спам"}]
+
+    @pytest.mark.asyncio
+    async def test_delete_ban_deletes_bans_with_revoke_and_notifies(self):
+        from src.guard.bot import moderate
+        update, ctx = _make_update("пишите, перешлю"), _make_context()
+        with patch("src.guard.bot.load_config", return_value=_config(rules=self.BAN)), patch("src.guard.bot.ADMIN_ID", 1):
+            await moderate(update, ctx)
+        update.effective_message.delete.assert_awaited_once()
+        ctx.bot.ban_chat_member.assert_awaited_once_with(chat_id=CHAT_ID, user_id=7, revoke_messages=True)
+        assert "забанен" in ctx.bot.send_message.call_args.kwargs["text"]
+
+    @pytest.mark.asyncio
+    async def test_ban_failure_still_notifies(self):
+        from src.guard.bot import moderate
+        update, ctx = _make_update("пишите, перешлю"), _make_context()
+        ctx.bot.ban_chat_member = AsyncMock(side_effect=TelegramError("no rights"))
+        with patch("src.guard.bot.load_config", return_value=_config(rules=self.BAN)), patch("src.guard.bot.ADMIN_ID", 1):
+            await moderate(update, ctx)
+        ctx.bot.send_message.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_delete_warn_does_not_ban(self):
+        from src.guard.bot import moderate
+        update, ctx = _make_update("ты хуй"), _make_context()
+        with patch("src.guard.bot.load_config", return_value=_config()), patch("src.guard.bot.ADMIN_ID", 1):
+            await moderate(update, ctx)
+        ctx.bot.ban_chat_member.assert_not_awaited()

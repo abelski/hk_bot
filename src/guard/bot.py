@@ -94,7 +94,7 @@ async def moderate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     reason, user.id, message.chat_id)
         return
 
-    if action in ("delete", "delete_warn"):
+    if action in ("delete", "delete_warn", "delete_ban"):
         try:
             await message.delete()
         except TelegramError as e:
@@ -102,9 +102,19 @@ async def moderate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             return
         logger.info("Deleted message from %s in %s (%s)", user.id, message.chat_id, reason)
 
-    if action in ("warn", "delete_warn"):
+    if action == "delete_ban":
+        # revoke_messages wipes the spammer's other messages too — the rule only saw one.
+        try:
+            await context.bot.ban_chat_member(
+                chat_id=message.chat_id, user_id=user.id, revoke_messages=True
+            )
+            logger.info("Banned %s in %s (%s)", user.id, message.chat_id, reason)
+        except TelegramError as e:
+            logger.warning("Cannot ban user %s in chat %s: %s", user.id, message.chat_id, e)
+
+    if action in ("warn", "delete_warn", "delete_ban"):
         who = f"@{user.username}" if user.username else user.first_name
-        verb = "сообщение удалено" if action == "delete_warn" else "нарушение"
+        verb = {"delete_warn": "сообщение удалено", "delete_ban": "забанен"}.get(action, "нарушение")
         notice = await context.bot.send_message(
             chat_id=message.chat_id, text=f"{who}, {verb}: {reason}"
         )
