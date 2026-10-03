@@ -206,6 +206,19 @@ class TestLiveConfig:
             assert find_action(text, rules) is None, text
 
 
+    def test_promo_code_spam_is_caught(self):
+        rules = self._live_rules()
+        spam = ("Found a hidden gem!\nWEXPRED is loaded with great deals!\n"
+                "Don't miss out: wexpred.com\nGet $1000 with code AUTUMN!")
+        assert find_action(spam, rules) == ("delete_ban", "спам с промокодом 🎰")
+
+    def test_promo_code_keeps_normal_talk(self):
+        rules = self._live_rules()
+        for text in ["скидка 10% в кайтшопе по промокоду KITE", "доска за 500$, торг",
+                     "use code review before merging"]:
+            assert find_action(text, rules) is None, text
+
+
 class TestCompileCache:
     def test_same_config_returns_cached_object(self):
         cfg = _cfg(PROFANITY)
