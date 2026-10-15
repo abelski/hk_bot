@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import time
 
 import requests
@@ -12,6 +13,7 @@ from src.news.helpers.rewrite_helper import rewrite_to_russian, strip_hashtags
 from src.shared.paths import ROOT
 
 _STATE_FILE = ROOT / "facebook_state.json"
+log = logging.getLogger(__name__)
 
 
 class FacebookCommand(AbstractRequestCommand, AbstractNewsCommand):
@@ -67,12 +69,13 @@ def _fetch_latest_post(page_name: str, retries: int = 2) -> dict | None:
     return None
 
 
-def _download_bytes(url: str) -> bytes | None:
+def _download_bytes(url: str, timeout: int = 15) -> bytes | None:
     try:
-        r = requests.get(url, timeout=15)
+        r = requests.get(url, timeout=timeout)
         r.raise_for_status()
         return r.content
-    except Exception:
+    except Exception as e:
+        log.warning("download failed for %s: %r", url, e)
         return None
 
 
@@ -80,7 +83,7 @@ def _format(data: dict) -> dict:
     raw = strip_hashtags(data["text"][:900]) if data["text"] else ""
     text = rewrite_to_russian(data["page"], raw) or raw or ""
     if data["video"]:
-        video_bytes = _download_bytes(data["video"])
+        video_bytes = _download_bytes(data["video"], timeout=60)
         if video_bytes:
             return {"text": text, "video": video_bytes}
     if data["images"]:

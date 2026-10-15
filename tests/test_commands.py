@@ -838,3 +838,25 @@ class TestStateFilePaths:
         assert state_path.parent == ROOT, (
             f"{module_name}._STATE_FILE resolves outside the repo root: {state_path}"
         )
+
+
+@pytest.mark.asyncio
+async def test_send_result_video_and_text_are_separate_messages():
+    from unittest.mock import AsyncMock, MagicMock
+    from src.news.bot import _send_result
+    bot = MagicMock(send_video=AsyncMock(), send_message=AsyncMock())
+    with patch("src.news.bot.load_config", return_value={}), \
+         patch("src.news.helpers.video_helper.get_video_dimensions", return_value=None):
+        await _send_result((bot, 1), {"text": "hello", "video": b"v"})
+    assert "caption" not in bot.send_video.call_args.kwargs
+    bot.send_message.assert_awaited_once()
+
+
+def test_facebook_video_download_uses_long_timeout():
+    from src.news.commands.facebook_command import _format
+    data = {"text": "", "page": "p", "images": ["i"], "video": "http://v"}
+    with patch("src.news.commands.facebook_command.rewrite_to_russian", return_value="t"), \
+         patch("src.news.commands.facebook_command._download_bytes", return_value=b"v") as dl:
+        result = _format(data)
+    assert result["video"] == b"v"
+    assert dl.call_args.kwargs["timeout"] == 60
