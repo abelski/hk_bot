@@ -535,6 +535,23 @@ class TestYoutubeHelper:
             result = download_youtube_video("https://www.youtube.com/watch?v=abc123")
         assert result == video_bytes
 
+    def test_returns_none_when_video_exceeds_telegram_limit(self):
+        from src.news.helpers.youtube_helper import download_youtube_video, TELEGRAM_VIDEO_LIMIT
+        from unittest.mock import MagicMock, mock_open
+
+        fake_ydl = self._make_fake_ydl()
+        too_big = b"x" * (TELEGRAM_VIDEO_LIMIT + 1)
+
+        with self._mock_yt_dlp(fake_ydl), \
+             patch("src.news.helpers.youtube_helper.tempfile.TemporaryDirectory") as mock_tmpdir, \
+             patch("src.news.helpers.youtube_helper.os.listdir", return_value=["video.mp4"]), \
+             patch("builtins.open", mock_open(read_data=too_big)), \
+             patch("src.news.helpers.youtube_helper.os.path.join", side_effect=os.path.join):
+            mock_tmpdir.return_value.__enter__ = MagicMock(return_value="/tmp/fake")
+            mock_tmpdir.return_value.__exit__ = MagicMock(return_value=False)
+            result = download_youtube_video("https://www.youtube.com/watch?v=abc123")
+        assert result is None
+
     def test_returns_none_on_download_error(self):
         from src.news.helpers.youtube_helper import download_youtube_video
 

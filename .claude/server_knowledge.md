@@ -106,6 +106,10 @@ ssh root@192.168.0.31 "pct exec 100 -- journalctl -u hk-bot -n 50 --no-pager"
   `yt-dlp -F` now reports `JS runtimes: deno-2.9.7`. The running `hk-bot` process still has the old
   module loaded — restarted `hk-bot` on 2026-10-16 12:42.
   Verified: `download_youtube_video` on a test video now returns 32.8 MB (was 403 before).
+- **Second cause (size)**: 720p videos over ~12 min are 50–70 MB (e.g. `sQ9EenKcjyg` ≈ 71 MB).
+  Telegram Bot API refuses uploads over 50 MB, and `_send_result` had no guard. `download_youtube_video`
+  now returns None above `TELEGRAM_VIDEO_LIMIT` (50 MB) so callers post the link. Not yet deployed.
+  Note: `run_if_new` saves state before the send, so a failed send is never retried.
 
 ## Groq API (rewrite_helper.py)
 - Groq retires models without notice. `llama-3.3-70b-versatile` was silently removed

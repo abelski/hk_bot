@@ -103,16 +103,12 @@ python -m src.news.bot    # or: python -m src.guard.bot
 ## Deploy
 
 `deploy.sh` pushes one bot's code straight to its container over SSH/`pct` and restarts its
-systemd service — not via CI (this project has no CI job or secret that deploys the guard bot):
+systemd service. There is no CI deploy job; GitHub Actions does not push code to either container.
 
 ```bash
 ./deploy.sh news    # CT 100, service hk-bot
 ./deploy.sh guard   # CT 101, service hk-guard
 ```
-
-Pushing to `main` also triggers `.github/workflows/deploy.yml`, which tests and deploys the
-**news bot only** (paths-filtered to `src/news/`, `src/shared/`, `config.json`,
-`requirements.txt`).
 
 ## License
 

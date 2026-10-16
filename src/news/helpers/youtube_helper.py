@@ -5,6 +5,8 @@ import tempfile
 
 log = logging.getLogger(__name__)
 
+TELEGRAM_VIDEO_LIMIT = 50_000_000  # bytes, Telegram Bot API upload cap
+
 
 def download_youtube_video(url: str) -> bytes | None:
     """Download a YouTube video and return its bytes. Returns None on failure.
@@ -36,6 +38,10 @@ def download_youtube_video(url: str) -> bytes | None:
                 return None
             with open(os.path.join(tmpdir, files[0]), "rb") as f:
                 data = f.read()
+            if len(data) > TELEGRAM_VIDEO_LIMIT:
+                # Bot API refuses uploads over 50 MB; drop it so callers post the link instead
+                log.warning("video too large for Telegram for %s: %.1f MB", url, len(data) / 1e6)
+                return None
             log.info("downloaded %s: %.1f MB", url, len(data) / 1e6)
             return data
         except Exception as e:
