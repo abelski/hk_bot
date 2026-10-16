@@ -860,3 +860,14 @@ def test_facebook_video_download_uses_long_timeout():
         result = _format(data)
     assert result["video"] == b"v"
     assert dl.call_args.kwargs["timeout"] == 60
+
+
+@pytest.mark.asyncio
+async def test_send_result_photos_and_text_are_separate_messages():
+    from unittest.mock import AsyncMock, MagicMock
+    from src.news.bot import _send_result
+    bot = MagicMock(send_media_group=AsyncMock(), send_message=AsyncMock())
+    with patch("src.news.bot.load_config", return_value={}):
+        await _send_result((bot, 1), {"text": "hello", "photos": [b"p"]})
+    assert bot.send_media_group.call_args.kwargs["media"][0].caption is None
+    bot.send_message.assert_awaited_once()

@@ -30,21 +30,9 @@ VERSION_FILE = f"{BOT_DIR}/deploy_version.txt"
 ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 
 
-def _split_at_paragraph(text: str, max_len: int = 1024):
-    """Return (head, tail) split at a paragraph boundary within max_len chars."""
-    if len(text) <= max_len:
-        return text, ""
-    split = text.rfind("\n\n", 0, max_len)
-    if split != -1:
-        return text[:split], text[split + 2:].strip()
-    return text[:max_len], text[max_len:].strip()
-
-
-def _build_media(photos: list, caption: str) -> list:
+def _build_media(photos: list) -> list:
     from io import BytesIO
-    media = [InputMediaPhoto(media=BytesIO(p)) for p in photos[:10]]
-    media[0] = InputMediaPhoto(media=BytesIO(photos[0]), caption=caption, parse_mode="HTML")
-    return media
+    return [InputMediaPhoto(media=BytesIO(p)) for p in photos[:10]]
 
 
 def _to_html(text: str) -> str:
@@ -68,18 +56,18 @@ async def _send_result(bot_or_query, result, *, is_query: bool = False) -> None:
         photos = result.get("photos", [])
         video = result.get("video")
         if photos:
-            caption, overflow = _split_at_paragraph(text)
-            media = _build_media(photos, caption)
+            # photos first, text as a separate message (easier for the editors to copy)
+            media = _build_media(photos)
             if is_query:
                 await bot_or_query.edit_message_reply_markup(reply_markup=None)
                 await bot_or_query.message.reply_media_group(media)
-                if overflow:
-                    await bot_or_query.message.reply_text(overflow, parse_mode="HTML")
+                if text:
+                    await bot_or_query.message.reply_text(text, parse_mode="HTML")
             else:
                 bot, chat_id = bot_or_query
                 await bot.send_media_group(chat_id=chat_id, media=media)
-                if overflow:
-                    await bot.send_message(chat_id=chat_id, text=overflow, parse_mode="HTML")
+                if text:
+                    await bot.send_message(chat_id=chat_id, text=text, parse_mode="HTML")
         elif video:
             from src.news.helpers.video_helper import get_video_dimensions
             dims = get_video_dimensions(video)
