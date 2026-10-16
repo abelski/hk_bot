@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import re
 import time
 import requests
@@ -11,6 +12,8 @@ from src.news.helpers.rewrite_helper import rewrite_to_russian
 from src.news.helpers.translation_helper import translate_to_russian
 from src.news.helpers.youtube_helper import download_youtube_video
 from src.shared.paths import ROOT
+
+log = logging.getLogger(__name__)
 
 _RSS_URL = "https://www.iksurfmag.com/kitesurfing-news/feed/"
 _STATE_FILE = ROOT / "iksurfmag_state.json"
@@ -92,8 +95,8 @@ def _fetch_article_data(url: str) -> dict:
                 if p.get_text(strip=True) and not p.get("class")
             ]
             result["text"] = "\n\n".join(paras)
-    except Exception:
-        pass
+    except Exception as e:
+        log.warning("article fetch failed for %s: %r", url, e)
     return result
 
 
@@ -118,6 +121,9 @@ def _parse_item(item) -> dict:
             m = re.search(r"/vi/([a-zA-Z0-9_-]+)/", media_url)
             if m:
                 video_url = f"https://www.youtube.com/watch?v={m.group(1)}"
+
+    if not video_url:
+        log.info("no video found for %s (media medium=%r url=%s)", url, media_el.get("medium") if media_el is not None else None, media_url)
 
     # Fallback text from RSS content:encoded if page fetch returned nothing.
     # Strip iksurfmag boilerplate ("first appeared on", "Read the full article here").
@@ -156,8 +162,8 @@ def _parse_item(item) -> dict:
             img_r = requests.get(image_url, headers=_HEADERS, timeout=15)
             img_r.raise_for_status()
             image = img_r.content
-        except Exception:
-            pass
+        except Exception as e:
+            log.warning("image download failed for %s: %r", image_url, e)
 
     return {"url": url, "title": title, "text": text, "image": image, "video_url": video_url}
 
@@ -186,9 +192,11 @@ def _format(data: dict) -> dict:
         if video_bytes:
             result["video"] = video_bytes
         else:
+            log.warning("video download failed for %s, posting link instead", data["video_url"])
             result["text"] += f"\n\n{data['video_url']}"
     elif data.get("image"):
         result["photos"] = [data["image"]]
+    log.info("iksurfmag post %s -> %s", data["url"], "video" if "video" in result else "photo" if "photos" in result else "text")
     return result
 
 

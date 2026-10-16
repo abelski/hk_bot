@@ -1,6 +1,9 @@
+import logging
 import os
 import re
 import tempfile
+
+log = logging.getLogger(__name__)
 
 
 def download_youtube_video(url: str) -> bytes | None:
@@ -29,10 +32,14 @@ def download_youtube_video(url: str) -> bytes | None:
                 ydl.download([url])
             files = os.listdir(tmpdir)
             if not files:
+                log.warning("yt-dlp produced no file for %s", url)
                 return None
             with open(os.path.join(tmpdir, files[0]), "rb") as f:
-                return f.read()
-        except Exception:
+                data = f.read()
+            log.info("downloaded %s: %.1f MB", url, len(data) / 1e6)
+            return data
+        except Exception as e:
+            log.warning("yt-dlp download failed for %s: %r", url, e)
             return None
 
 

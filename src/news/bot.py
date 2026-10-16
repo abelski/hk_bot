@@ -55,6 +55,7 @@ async def _send_result(bot_or_query, result, *, is_query: bool = False) -> None:
         text = _append_footer(result.get("text", ""))
         photos = result.get("photos", [])
         video = result.get("video")
+        logger.info("sending: %d photos, video=%s, %d chars", len(photos), bool(video), len(text))
         if photos:
             # photos first, text as a separate message (easier for the editors to copy)
             media = _build_media(photos)
