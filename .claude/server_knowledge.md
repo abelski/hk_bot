@@ -89,6 +89,24 @@ ssh root@192.168.0.31 "pct exec 100 -- journalctl -u hk-bot -n 50 --no-pager"
 - Proxmox REST API has no exec endpoint for LXC — must use `pct exec` via SSH
 - `download_url` API endpoint returns 501 on this Proxmox version — use `aplinfo.post()` to download templates
 
+## YouTube downloads on CT 100 (yt-dlp)
+- **Symptom**: every video download returns None, so posts fall back to the bare link. Metadata
+  fetch works fine (`_fetch_latest_video`), only the byte download fails:
+  `HTTP Error 403: Forbidden`.
+- **Cause**: `[youtube] No supported JavaScript runtime could be found` — the container has no
+  deno/node/bun, so yt-dlp cannot solve YouTube's JS challenges. Only the android-VR formats
+  remain (video-only 720p+ and muxed-less), and those 403 without a PO token.
+  Also `yt-dlp 2026.03.17` is >90 days old; latest on the index is `2026.8.19`.
+- **Check**: `python3 -m yt_dlp -v -F <url>` in `/root/hk_bot` — look for `JS runtimes: none`.
+- **Quiet failure**: `youtube_command._fetch_latest_video` swallows all exceptions, and the hourly
+  `run_if_new` only calls `_format` (the download) for a new video. So the cron can look healthy
+  for hours while downloads are broken; the failure only shows on the next new video or `/youtube`.
+- **Fix 2026-10-16**: deno 2.9.7 installed at `/usr/local/bin/deno` (binary from GitHub releases,
+  aarch64, no apt package on jammy); yt-dlp upgraded to 2026.8.19 via `pip install -U` (`/usr/local/lib`).
+  `yt-dlp -F` now reports `JS runtimes: deno-2.9.7`. The running `hk-bot` process still has the old
+  module loaded — restarted `hk-bot` on 2026-10-16 12:42.
+  Verified: `download_youtube_video` on a test video now returns 32.8 MB (was 403 before).
+
 ## Groq API (rewrite_helper.py)
 - Groq retires models without notice. `llama-3.3-70b-versatile` was silently removed
   (404 `model_not_found`), which made every `rewrite_to_russian()` call return None for
