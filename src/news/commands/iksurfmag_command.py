@@ -78,10 +78,11 @@ def _fetch_article_data(url: str) -> dict:
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
 
-        # Video: lazy-loaded YouTube iframe uses data-src, not src
-        iframe = soup.find("iframe", attrs={"data-src": lambda s: s and "youtube" in s})
+        # Video: site serves plain youtube-nocookie.com iframes (src) now; older markup lazy-loads via data-src
+        is_youtube = lambda s: s and "youtube" in s
+        iframe = soup.find("iframe", attrs={"src": is_youtube}) or soup.find("iframe", attrs={"data-src": is_youtube})
         if iframe:
-            result["video_url"] = _youtube_watch_url(iframe.get("data-src", ""))
+            result["video_url"] = _youtube_watch_url(iframe.get("data-src") or iframe.get("src", ""))
 
         # Text: strip noise from .single-post, collect classless <p> tags
         post = soup.select_one(".single-post")

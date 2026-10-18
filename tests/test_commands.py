@@ -431,6 +431,32 @@ class TestIksurfmagCommand:
         assert "Lords Of Tram" in result["text"]
         assert result["video_url"] == "https://www.youtube.com/watch?v=FGQpFpAYeik"
 
+    def test_fetch_article_data_finds_plain_youtube_nocookie_iframe(self):
+        from src.news.commands.iksurfmag_command import _fetch_article_data
+        # Current iksurfmag markup: plain src (no data-src), youtube-nocookie.com embed
+        html = """
+        <html><body>
+          <div class="single-post">
+            <p>Kung fu in the golden light.</p>
+            <div class="video-single__player"><iframe src="https://www.youtube-nocookie.com/embed/ZnPTFwRJyac?rel=0&amp;modestbranding=1" title="Kung fu"></iframe></div>
+          </div>
+        </body></html>"""
+        mock_resp = type("R", (), {"text": html, "raise_for_status": lambda _: None})()
+        with patch("src.news.commands.iksurfmag_command.requests.get", return_value=mock_resp):
+            result = _fetch_article_data("https://iksurfmag.com/news/2")
+        assert result["video_url"] == "https://www.youtube.com/watch?v=ZnPTFwRJyac"
+
+    def test_fetch_article_data_ignores_non_youtube_iframe(self):
+        from src.news.commands.iksurfmag_command import _fetch_article_data
+        html = """
+        <html><body><div class="single-post">
+          <p>Body</p><iframe src="https://example.com/widget"></iframe>
+        </div></body></html>"""
+        mock_resp = type("R", (), {"text": html, "raise_for_status": lambda _: None})()
+        with patch("src.news.commands.iksurfmag_command.requests.get", return_value=mock_resp):
+            result = _fetch_article_data("https://iksurfmag.com/news/3")
+        assert result["video_url"] is None
+
     def test_fetch_article_data_returns_empty_on_failure(self):
         from src.news.commands.iksurfmag_command import _fetch_article_data
         with patch("src.news.commands.iksurfmag_command.requests.get", side_effect=Exception("err")):
@@ -551,6 +577,19 @@ class TestYoutubeHelper:
             mock_tmpdir.return_value.__exit__ = MagicMock(return_value=False)
             result = download_youtube_video("https://www.youtube.com/watch?v=abc123")
         assert result is None
+
+    def test_falls_back_to_480p_when_720p_exceeds_limit(self):
+        from src.news.helpers.youtube_helper import download_youtube_video, TELEGRAM_VIDEO_LIMIT
+
+        fake_ydl = self._make_fake_ydl()
+        too_big = b"x" * (TELEGRAM_VIDEO_LIMIT + 1)
+        small = b"y" * 1000
+
+        with self._mock_yt_dlp(fake_ydl), \
+             patch("src.news.helpers.youtube_helper._download_at_height", side_effect=[too_big, small]) as mock_dl:
+            result = download_youtube_video("https://www.youtube.com/watch?v=abc123")
+        assert result == small
+        assert [c.args[2] for c in mock_dl.call_args_list] == [720, 480]
 
     def test_returns_none_on_download_error(self):
         from src.news.helpers.youtube_helper import download_youtube_video

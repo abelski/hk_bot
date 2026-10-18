@@ -11,7 +11,7 @@ TELEGRAM_VIDEO_LIMIT = 50_000_000  # bytes, Telegram Bot API upload cap
 def download_youtube_video(url: str) -> bytes | None:
     """Download a YouTube video and return its bytes. Returns None on failure.
 
-    Selects the best progressive MP4 up to 720p to stay within Telegram's 50 MB limit.
+    Tries 720p first, then 480p if the file would exceed Telegram's 50 MB upload limit.
     Requires yt-dlp to be installed.
     """
     try:
@@ -19,10 +19,22 @@ def download_youtube_video(url: str) -> bytes | None:
     except ImportError:
         return None
 
+    for height in (720, 480):
+        data = _download_at_height(yt_dlp, url, height)
+        if data is None:
+            return None
+        if len(data) <= TELEGRAM_VIDEO_LIMIT:
+            log.info("downloaded %s at %dp: %.1f MB", url, height, len(data) / 1e6)
+            return data
+        log.info("%s at %dp is %.1f MB, over Telegram limit", url, height, len(data) / 1e6)
+    return None
+
+
+def _download_at_height(yt_dlp, url: str, height: int) -> bytes | None:
     with tempfile.TemporaryDirectory() as tmpdir:
         output_path = os.path.join(tmpdir, "video.%(ext)s")
         ydl_opts = {
-            "format": "bestvideo[height<=720]+bestaudio/best[height<=720]/best",
+            "format": f"bestvideo[height<={height}]+bestaudio/best[height<={height}]/best",
             "merge_output_format": "mp4",
             "outtmpl": output_path,
             "quiet": True,
@@ -37,13 +49,7 @@ def download_youtube_video(url: str) -> bytes | None:
                 log.warning("yt-dlp produced no file for %s", url)
                 return None
             with open(os.path.join(tmpdir, files[0]), "rb") as f:
-                data = f.read()
-            if len(data) > TELEGRAM_VIDEO_LIMIT:
-                # Bot API refuses uploads over 50 MB; drop it so callers post the link instead
-                log.warning("video too large for Telegram for %s: %.1f MB", url, len(data) / 1e6)
-                return None
-            log.info("downloaded %s: %.1f MB", url, len(data) / 1e6)
-            return data
+                return f.read()
         except Exception as e:
             log.warning("yt-dlp download failed for %s: %r", url, e)
             return None

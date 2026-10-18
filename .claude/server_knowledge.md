@@ -111,6 +111,25 @@ ssh root@192.168.0.31 "pct exec 100 -- journalctl -u hk-bot -n 50 --no-pager"
   now returns None above `TELEGRAM_VIDEO_LIMIT` (50 MB) so callers post the link. Not yet deployed.
   Note: `run_if_new` saves state before the send, so a failed send is never retried.
 
+## Post triage 2026-10-17 (why videos stopped reaching the group)
+- **iksurfmag parser (main cause)**: the site now serves plain `<iframe src="https://www.youtube-nocookie.com/embed/...">`.
+  The parser only looked at `iframe[data-src]`, so every video article went out as a photo (7 posts
+  since 2026-10-16). Fixed: checks `src` and `data-src`. Verified on the live feed's four newest
+  articles (videos 0.4–2.4 MB). Unit test: `test_fetch_article_data_finds_plain_youtube_nocookie_iframe`.
+- **Instagram and KiteGirl: no posts at all.** Every account returns HTTP 401 "Please wait a few minutes…
+  require_login" through the Cloudflare proxy. `_fetch_latest_post` treats 401/403 as "no post" with no log,
+  so this is invisible in journalctl. State files are stale (instagram since 2026-10-03, kitegirl since 2026-10-10).
+  Needs a logged-in session or a different source. Not fixable in code alone.
+- **Facebook: no posts.** `facebook_scraper.get_posts` returns 0 for `dontpullthebar` even with `pages=3`
+  (login wall / lt_LT). No `facebook_state.json` exists, so it has never posted here. Needs cookies.
+- **YouTube bot check (2026-10-12 12:00)**: yt-dlp hit "Sign in to confirm you're not a bot" for all
+  channels; the Pryde Club video `ayq-lyO-zgw` ("KT testing") went out link-only. Fetch works again now.
+- **YouTube 403 (2026-10-13 05:00)**: `d5SBuax2EnM` ("Chicama (Peru)") went out link-only before the deno fix.
+- **Link-only posts are never retried**: state is saved before the download, so a failed video is lost.
+  Both Pryde Club videos download fine now (32.8 MB and 21.9 MB at 720p) if they are re-sent manually.
+- **Silent `except`s**: `_fetch_latest_video`, instagram/kitegirl `_fetch_latest_post` (401/403) and
+  facebook's empty result all return None without a log line.
+
 ## Groq API (rewrite_helper.py)
 - Groq retires models without notice. `llama-3.3-70b-versatile` was silently removed
   (404 `model_not_found`), which made every `rewrite_to_russian()` call return None for
